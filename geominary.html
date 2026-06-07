@@ -5,9 +5,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark">
-<title>geominary</title>
+<title>GeoMinary - 確率・統計シミュレーター | Probability & Statistics Simulator</title>
+<meta name="description" content="幾何分布に基づく確率シミュレーター。乱数生成・統計可視化・Z値・標準偏差をリアルタイム表示。スクリーンセーバーとしても使用可能。10言語対応。 / Geometric distribution probability simulator with real-time statistics, Z-score, standard deviation. 10 languages supported.">
+<meta name="keywords" content="確率,統計,シミュレーター,幾何分布,乱数,可視化,スクリーンセーバー,Z値,標準偏差,probability,statistics,simulator,geometric distribution,random number,screensaver,数学,math,확률,概率,Wahrscheinlichkeit,probabilité">
+<meta property="og:title" content="GeoMinary - 確率・統計シミュレーター">
+<meta property="og:description" content="幾何分布に基づく確率シミュレーター。統計データをリアルタイム可視化。10言語・8テーマ対応。">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="GeoMinary - Probability & Statistics Simulator">
+<meta name="twitter:description" content="Geometric distribution simulator with real-time statistics visualization. 10 languages, 8 themes.">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Noto+Serif+JP:wght@400;700&family=Pacifico&family=Yuji+Syuku&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Noto+Serif+JP:wght@400;700&family=Pacifico&family=Yuji+Syuku&family=Cinzel:wght@400;700&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
   :root {
@@ -102,13 +110,19 @@
     width: 280px; height: 100vh;
     background: rgba(8,10,16,0.97);
     backdrop-filter: blur(16px);
-    border-left: 1px solid var(--mid);
+    border-left: 1px solid rgba(255,255,255,0.1);
     z-index: 400;
     transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
     display: flex; flex-direction: column;
     padding: 60px 20px 32px;
     gap: 28px;
     overflow-y: auto;
+    /* CSS変数をドロワー内で固定上書き */
+    --fg: #e8f4f8;
+    --mid: rgba(255,255,255,0.15);
+    --dim: rgba(255,255,255,0.1);
+    --bg: #080a10;
+    color: #e8f4f8;
   }
   #drawer.open { right: 0; }
   #drawerClose {
@@ -194,7 +208,11 @@
   .scale-btn.active { opacity: 1; color: var(--accent); border-color: var(--accent); background: var(--dim); }
 
   .debug-section { border-top: 1px dashed rgba(255,200,0,0.3); padding-top: 20px; }
-  .debug-section .drawer-section-title { color: #ffc800; }
+  #drawer .theme-btn { color: #e8f4f8; }
+  #drawer .theme-btn.active { background: rgba(255,255,255,0.15) !important; }
+  #drawer .scale-btn { color: #e8f4f8; }
+  #drawer .scale-btn.active { color: var(--accent); border-color: var(--accent); background: rgba(255,255,255,0.1) !important; }
+  #drawer .drawer-section-title { color: var(--accent); opacity: 0.7; }
   .debug-row { display: flex; gap: 8px; }
   .debug-btn {
     flex: 1;
@@ -280,10 +298,10 @@
     flex: 1; text-align: center; font-size: 11px;
     letter-spacing: 0.2em; padding: 6px 0;
     color: var(--fg); opacity: 0.3;
-    transition: opacity 0.2s, background 0.2s, color 0.5s;
+    transition: background 0.2s, color 0.5s;
     text-transform: uppercase;
   }
-  .panel-tab.active { opacity: 1; color: var(--accent); background: var(--dim); }
+  .panel-tab.active { opacity: 1 !important; color: var(--accent); background: var(--dim); }
   .panel-divider { width: 1px; height: 28px; background: var(--mid); flex-shrink: 0; }
 
   .bars-scroll {
@@ -444,7 +462,7 @@
     bottom: -20px;
     left: 50%;
     transform: translateX(-50%);
-    opacity: 0.07;
+    opacity: 0.18;
     pointer-events: none;
     z-index: 1;
     transition: opacity 0.4s;
@@ -456,20 +474,7 @@
   #flashOverlay { position: fixed; inset: 0; pointer-events: none; z-index: 99; opacity: 0; }
 
   /* ── スプラッシュ ── */
-  #splashOverlay {
-    position: fixed; inset: 0; z-index: 900;
-    background: #0a0a0a;
-    pointer-events: none;
-    opacity: 1;
-    transition: opacity 0.7s ease-out;
-  }
-  #splashLogo {
-    position: fixed; inset: 0; z-index: 901;
-    display: flex; align-items: center; justify-content: center;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.5s ease-out;
-  }
+
 </style>
 </head>
 <body>
@@ -477,20 +482,6 @@
 <canvas id="fxCanvas"></canvas>
 <div id="flashOverlay"></div>
 <div id="probPopup"></div>
-
-<!-- スプラッシュ -->
-<div id="splashOverlay"></div>
-<div id="splashLogo">
-  <div style="display:flex;align-items:center;gap:20px;">
-    <svg width="64" height="64" viewBox="0 0 64 64">
-      <circle cx="32" cy="32" r="28" fill="none" stroke="#fff" stroke-width="0.8" opacity="0.15"/>
-      <circle cx="32" cy="32" r="18" fill="none" stroke="#fff" stroke-width="0.8" opacity="0.3"/>
-      <circle cx="32" cy="32" r="8" fill="none" stroke="#fff" stroke-width="1.2" opacity="0.7"/>
-      <circle cx="32" cy="4" r="3" fill="#fff" opacity="0.9"/>
-    </svg>
-    <span style="color:#fff;font-size:22px;font-weight:200;letter-spacing:8px;opacity:0.85;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;">GeoMinary</span>
-  </div>
-</div>
 
 <div id="resetOverlay" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.7);
   flex-direction:column;align-items:center;justify-content:center;gap:14px;">
@@ -515,6 +506,7 @@
 <!-- 履歴パネル -->
 <div id="historyPanel">
   <div id="historyPanelTitle">— の出現間隔（直近）</div>
+  <div id="historyPanelTotal" style="font-size:9px;letter-spacing:0.1em;color:var(--accent);opacity:0.5;margin-bottom:8px;"></div>
   <button id="historyPanelClose">✕</button>
   <div id="historyBars"></div>
   <div id="historyPanelSub"></div>
@@ -560,7 +552,7 @@
   <div>
     <div class="drawer-section-title" id="secAppearance">表示設定</div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
-      <span style="font-size:12px;letter-spacing:0.1em;color:var(--fg);opacity:0.7;" id="labelEffects">演出エフェクト</span>
+      <span style="font-size:12px;letter-spacing:0.1em;color:#e8f4f8;opacity:0.7;" id="labelEffects">演出エフェクト</span>
       <button id="toggleEffects" style="
         width:40px;height:22px;border-radius:11px;border:none;cursor:pointer;
         background:var(--accent);position:relative;flex-shrink:0;transition:background 0.2s;
@@ -577,20 +569,20 @@
     <div style="display:flex;flex-direction:column;gap:8px;">
       <button id="btnExportData" style="
         font-family:var(--ui-font);font-size:11px;letter-spacing:0.1em;
-        padding:9px 12px;border:1px solid var(--mid);border-radius:4px;
-        background:transparent;color:var(--fg);opacity:0.7;cursor:pointer;
+        padding:9px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:4px;
+        background:transparent;color:#e8f4f8;opacity:0.7;cursor:pointer;
         text-align:left;transition:all 0.15s;
       ">📋 データをコピー</button>
       <button id="btnImportData" style="
         font-family:var(--ui-font);font-size:11px;letter-spacing:0.1em;
-        padding:9px 12px;border:1px solid var(--mid);border-radius:4px;
-        background:transparent;color:var(--fg);opacity:0.7;cursor:pointer;
+        padding:9px 12px;border:1px solid rgba(255,255,255,0.2);border-radius:4px;
+        background:transparent;color:#e8f4f8;opacity:0.7;cursor:pointer;
         text-align:left;transition:all 0.15s;
       ">📥 データを読み込む</button>
       <div id="importArea" style="display:none;flex-direction:column;gap:6px;">
         <textarea id="importTextarea" style="
-          width:100%;height:80px;background:var(--dim);border:1px solid var(--mid);
-          border-radius:4px;color:var(--fg);font-family:var(--ui-font);font-size:10px;
+          width:100%;height:80px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);
+          border-radius:4px;color:#e8f4f8;font-family:var(--ui-font);font-size:10px;
           padding:8px;resize:none;outline:none;letter-spacing:0.05em;
         " placeholder="コピーしたデータを貼り付け"></textarea>
         <button id="btnImportConfirm" style="
@@ -800,13 +792,11 @@ const THEMES = [
     gentle: true,
   },
   {
-    id: 'fantasy', name: 'ファンタジー', streakSymbol: '🔥', swatch: '#44aaff',
+    id: 'fantasy', name: 'ファンタジー', streakSymbol: '🔥', swatch: '#44aaff', roman: true,
     vars: {
       '--bg':'#0a1428','--fg':'#c8deff','--accent':'#88bbff',
       '--dim':'#101e38','--mid':'#1a2e50',
-      '--number-font':"'Bebas Neue', sans-serif",
-      '--ui-font':"'Share Tech Mono', monospace",
-      '--grid-color':'rgba(136,187,255,0.04)',
+      '--number-font':"'Cinzel', serif",
       '--ring1':'#1a2e50','--ring2':'rgba(136,187,255,0.2)','--ring3':'rgba(136,187,255,0.1)',
       '--dot-color':'#88bbff',
       '--over-color':'#aad4ff',
@@ -861,6 +851,8 @@ const LANGS = {
   es: { flag:'🇪🇸', name:'Español', themeNames:['Ciber','Wabi','Minimal','Neón','Café','Kawaii','Sereno','Fantasía'], tabCount:'Conteo', tabStreak:'Racha', scaleLabels:['Conteo','log₂','Norm'], prob:' probabilidad: ', resetTitle:'Seleccionar modo', resetRandom:'Modo normal', resetBinary:'Modo binario', resetCancel:'Cancelar', secTheme:'Tema', secDisplay:'Escala', secLang:'Idioma', secAppearance:'Visualización', labelTheater:'Modo teatro', labelEffects:'Efectos', scaleBtnLabels:['Conteo (normal)', 'log₂(Conteo)', 'log₂(Conteo/total) / (-n)'], fire:'Lanzar🔥', lastAt:'Última:', lastUnit:'ª', lastNone:'Sin registro', normal:'×1', replayFrom:'▶ Reproducir desde aquí', replayStop:'■ Parar', secData:'Datos', historyTitle:'Intervalo de', historyTitleSuffix:'recientes)', historyAvg:'Intervalo medio:', historyLast:'Último:', historyLastUnit:'', historyAvgRecent:'Prom. reciente:', historyAvgTotal:'Prom. total:', historyExpected:'Esperado:', historyTotalCount:'Total:', historyStddev:'Desv. est.:', historyZscore:'Puntuación Z:', historyProbWithin:'Fuera |Z|:', btnExport:'📋 Copiar datos', btnImport:'📥 Cargar datos', dataCopied:'✓ Copiado！', dataCopyManual:'Mantén pulsado para copiar', dataEmpty:'Sin datos', dataError:'Error', dataPaste:'Pega los datos aquí', dataInvalid:'Datos inválidos', dataLoaded:'✓ Cargado！', btnImportConfirm:'Cargar' },
   fr: { flag:'🇫🇷', name:'Français', themeNames:['Cyber','Wabi','Minimal','Néon','Café','Kawaii','Sérénité','Fantaisie'], tabCount:'Comptage', tabStreak:'Série', scaleLabels:['Comptage','log₂','Norm'], prob:' probabilité: ', resetTitle:'Choisir le mode', resetRandom:'Mode normal', resetBinary:'Mode binaire', resetCancel:'Annuler', secTheme:'Thème', secDisplay:'Échelle', secLang:'Langue', secAppearance:'Affichage', labelTheater:'Mode théâtre', labelEffects:'Effets', scaleBtnLabels:['Comptage (normal)', 'log₂(Comptage)', 'log₂(Comptage/total) / (-n)'], fire:'Lancer🔥', lastAt:'Dernier:', lastUnit:'ème', lastNone:'Aucun', normal:'×1', replayFrom:'▶ Rejouer depuis ici', replayStop:'■ Arrêter', historyTitle:'Intervalle de', historyTitleSuffix:'récents)', historyAvg:'Intervalle moy.:', historyLast:'Dernier:', historyLastUnit:'', historyAvgRecent:'Moy. récente:', historyAvgTotal:'Moy. totale:', historyExpected:'Attendu:', historyTotalCount:'Total:', historyStddev:'Écart-type:', historyZscore:'Score Z:', historyProbWithin:'Hors |Z|:', secData:'Données', btnExport:'📋 Copier données', btnImport:'📥 Charger données', dataCopied:'✓ Copié！', dataCopyManual:'Appui long pour copier', dataEmpty:'Pas de données', dataError:'Erreur', dataPaste:'Collez les données ici', dataInvalid:'Données invalides', dataLoaded:'✓ Chargé！', btnImportConfirm:'Charger' },
   pt: { flag:'🇧🇷', name:'Português', themeNames:['Cyber','Wabi','Minimal','Neon','Café','Kawaii','Serenidade','Fantasia'], tabCount:'Contagem', tabStreak:'Sequência', scaleLabels:['Contagem','log₂','Norm'], prob:' probabilidade: ', resetTitle:'Selecionar modo', resetRandom:'Modo normal', resetBinary:'Modo binário', resetCancel:'Cancelar', secTheme:'Tema', secDisplay:'Escala', secLang:'Idioma', secAppearance:'Exibição', labelTheater:'Modo teatro', labelEffects:'Efeitos', scaleBtnLabels:['Contagem (normal)', 'log₂(Contagem)', 'log₂(Contagem/total) / (-n)'], fire:'Disparar🔥', lastAt:'Última:', lastUnit:'ª', lastNone:'Sem registro', normal:'×1', replayFrom:'▶ Reproduzir daqui', replayStop:'■ Parar', secData:'Dados', historyTitle:'Intervalo de', historyTitleSuffix:'recentes)', historyAvg:'Intervalo médio:', historyLast:'Último:', historyLastUnit:'', historyAvgRecent:'Méd. recente:', historyAvgTotal:'Méd. total:', historyExpected:'Esperado:', historyTotalCount:'Total:', historyStddev:'Desvio pad.:', historyZscore:'Pontuação Z:', historyProbWithin:'Fora |Z|:', btnExport:'📋 Copiar dados', btnImport:'📥 Carregar dados', dataCopied:'✓ Copiado！', dataCopyManual:'Pressione para copiar', dataEmpty:'Sem dados', dataError:'Erro', dataPaste:'Cole os dados aqui', dataInvalid:'Dados inválidos', dataLoaded:'✓ Carregado！', btnImportConfirm:'Carregar' },
+  ru: { flag:'🇷🇺', name:'Русский', themeNames:['Кибер','Ваби','Минимал','Неон','Кафе','Каваии','Покой','Фэнтези'], tabCount:'Счётчик', tabStreak:'Серия', scaleLabels:['Счёт','log₂','Норм'], prob:' вероятность: ', resetTitle:'Выберите режим', resetRandom:'Обычный режим', resetBinary:'Двоичный режим', resetCancel:'Отмена', secTheme:'Тема', secDisplay:'Масштаб', secLang:'Язык', secAppearance:'Вид', labelTheater:'Режим театра', labelEffects:'Эффекты', scaleBtnLabels:['Счёт (обычный)', 'log₂(Счёт)', 'log₂(Счёт/всего) / (-n)'], fire:'Огонь🔥', lastAt:'Последний:', lastUnit:'-й', lastNone:'Нет записи', normal:'×1', replayFrom:'▶ Воспроизвести отсюда', replayStop:'■ Стоп', secData:'Данные', historyTitle:'Интервалы для ', historyTitleSuffix:' (посл.)', historyAvg:'Ср. интервал:', historyLast:'Последний:', historyLastUnit:'-й', historyAvgRecent:'Ср. посл.:', historyAvgTotal:'Ср. всего:', historyExpected:'Ожидаемо:', historyTotalCount:'Всего:', historyStddev:'Ст. откл.:', historyZscore:'Z-оценка:', historyProbWithin:'|Z| и выше:', btnExport:'📋 Копировать', btnImport:'📥 Загрузить', dataCopied:'✓ Скопировано!', dataCopyManual:'Удерживайте для копирования', dataEmpty:'Нет данных', dataError:'Ошибка', dataPaste:'Вставьте данные', dataInvalid:'Неверные данные', dataLoaded:'✓ Загружено!', btnImportConfirm:'Загрузить' },
+  de: { flag:'🇩🇪', name:'Deutsch', themeNames:['Cyber','Wabi','Minimal','Neon','Café','Kawaii','Stille','Fantasie'], tabCount:'Anzahl', tabStreak:'Serie', scaleLabels:['Anzahl','log₂','Norm'], prob:' Wahrsch.: ', resetTitle:'Modus wählen', resetRandom:'Normalmodus', resetBinary:'Binärmodus', resetCancel:'Abbrechen', secTheme:'Thema', secDisplay:'Skala', secLang:'Sprache', secAppearance:'Anzeige', labelTheater:'Theatermodus', labelEffects:'Effekte', scaleBtnLabels:['Anzahl (normal)', 'log₂(Anzahl)', 'log₂(Anzahl/gesamt) / (-n)'], fire:'Feuer🔥', lastAt:'Letztes:', lastUnit:'.', lastNone:'Kein Eintrag', normal:'×1', replayFrom:'▶ Von hier abspielen', replayStop:'■ Stopp', secData:'Daten', historyTitle:'Intervalle für ', historyTitleSuffix:' (letzt.)', historyAvg:'Ø Intervall:', historyLast:'Letztes:', historyLastUnit:'.', historyAvgRecent:'Akt. Ø:', historyAvgTotal:'Ges. Ø:', historyExpected:'Erwartet:', historyTotalCount:'Gesamt:', historyStddev:'Std.abw.:', historyZscore:'Z-Wert:', historyProbWithin:'|Z| u. mehr:', btnExport:'📋 Daten kopieren', btnImport:'📥 Daten laden', dataCopied:'✓ Kopiert!', dataCopyManual:'Gedrückt halten', dataEmpty:'Keine Daten', dataError:'Fehler', dataPaste:'Daten einfügen', dataInvalid:'Ungültige Daten', dataLoaded:'✓ Geladen!', btnImportConfirm:'Laden' },
 };
 let currentLang = LANGS.ja;
 let currentLangKey = 'ja';
@@ -973,11 +965,20 @@ function switchPanel(panel) {
   currentPanel = panel;
   document.getElementById('panelCount').style.display  = panel === 'count'  ? '' : 'none';
   document.getElementById('panelStreak').style.display = panel === 'streak' ? '' : 'none';
-  document.getElementById('tabCount').classList.toggle('active',  panel === 'count');
-  document.getElementById('tabStreak').classList.toggle('active', panel === 'streak');
+  const tc = document.getElementById('tabCount');
+  const ts = document.getElementById('tabStreak');
+  tc.classList.remove('active');
+  ts.classList.remove('active');
+  if (panel === 'count') tc.classList.add('active');
+  if (panel === 'streak') ts.classList.add('active');
 }
 
-document.getElementById('tabCount').addEventListener('click', () => {
+document.getElementById('tabStreak').addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  switchPanel('streak');
+}, { passive: false });
+document.getElementById('tabCount').addEventListener('touchstart', (e) => {
+  e.preventDefault();
   if (currentPanel === 'count') {
     const idx = scaleModes.indexOf(scaleMode);
     scaleMode = scaleModes[(idx + 1) % scaleModes.length];
@@ -990,8 +991,7 @@ document.getElementById('tabCount').addEventListener('click', () => {
     switchPanel('count');
     document.getElementById('tabCount').textContent = getLangTabCount();
   }
-});
-document.getElementById('tabStreak').addEventListener('click', () => { switchPanel('streak'); });
+}, { passive: false });
 
 const popup = document.getElementById('probPopup');
 let popupTimer = null, touchStartX = 0, touchStartY = 0;
@@ -1043,6 +1043,16 @@ const KANJI_NUMS = ['〇','一','二','三','四','五','六','七','八','九',
   '三十','三十一','三十二','三十三','三十四','三十五','三十六','三十七','三十八','三十九',
   '四十','四十一','四十二','四十三','四十四','四十五','四十六','四十七','四十八','四十九','五十'];
 function toKanji(n) { return KANJI_NUMS[n] || String(n); }
+
+function toRoman(n) {
+  const vals = [1000,900,500,400,100,90,50,40,10,9,5,4,1];
+  const syms = ['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];
+  let result = '';
+  for (let i = 0; i < vals.length; i++) {
+    while (n >= vals[i]) { result += syms[i]; n -= vals[i]; }
+  }
+  return result;
+}
 function frac(n) {
   if (n <= 52) return `1 / ${Math.pow(2,n).toLocaleString()}`;
   return `1 / 2^${n}`;
@@ -1051,9 +1061,15 @@ function frac(n) {
 function renderBars() {
   const el = document.getElementById('bars');
   const keys = Object.keys(counts).map(Number).sort((a,b)=>a-b);
+  // 1からmaxSeen+2まで全部表示（対数モード以外は0回も含む）
+  const displayMax = maxSeen + 2;
+  const allKeys = [];
+  for (let n = 1; n <= displayMax; n++) {
+    allKeys.push(n);
+  }
   const maxC = Math.max(...Object.values(counts), 1);
   el.innerHTML = '';
-  keys.forEach(n => {
+  allKeys.forEach(n => {
     const c = counts[n]||0;
     let pct, label;
     if (scaleMode === 'log2c') {
@@ -1078,6 +1094,10 @@ function renderBars() {
       ? `<div class="bar-baseline" style="left:50%"></div>` : '';
     const row = document.createElement('div');
     row.className = 'bar-row';
+    if (c === 0) {
+      row.style.opacity = scaleMode === 'log2c' ? '0' : '0.3';
+      if (scaleMode === 'log2c') row.style.pointerEvents = 'none';
+    }
     row.innerHTML = `
       <div class="bar-label">${n}</div>
       <div class="bar-track">${baseline}<div class="bar-fill" style="width:${pct}%"></div>${normOver}</div>
@@ -1097,13 +1117,19 @@ function renderBars() {
         document.addEventListener('touchmove', moveHandler, { passive: true, once: true });
         probHoldTimer = setTimeout(() => {
           if (!moved) {
-            // メイン数字を更新
-            const el = document.getElementById('bigNumber');
-            const kanjiText = currentTheme.kanji ? toKanji(n) : n;
-            el.textContent = kanjiText;
-            el.style.marginTop = currentTheme.id === 'kawaii' ? '-30px' : '';
-            document.getElementById('probLabel').textContent = `P = ${frac(n)}`;
-            triggerEffect(n);
+            // 0回の数字はメイン数字更新・演出なし、直近データのみ
+            if ((counts[n] || 0) > 0) {
+              const el = document.getElementById('bigNumber');
+              const kanjiText = currentTheme.roman ? toRoman(n) : currentTheme.kanji ? toKanji(n) : n;
+              el.style.transition = '';
+              el.style.opacity = '1';
+              el.classList.remove('flash'); void el.offsetWidth;
+              el.textContent = kanjiText;
+              el.style.marginTop = currentTheme.id === 'kawaii' ? '-30px' : '';
+              el.classList.add('flash');
+              document.getElementById('probLabel').textContent = `P = ${frac(n)}`;
+              triggerEffect(n);
+            }
             // 直近データを表示
             showHistoryChart(n);
           }
@@ -1118,24 +1144,27 @@ function renderBars() {
 
 function renderStreak() {
   const el = document.getElementById('streakBars');
-  const keys = Object.keys(streakBest).map(Number).sort((a,b)=>a-b);
-  if (!keys.length) { el.innerHTML = ''; return; }
+  if (!maxSeen) { el.innerHTML = ''; return; }
   const maxV = Math.max(...Object.values(streakBest), 1);
   el.innerHTML = '';
-  keys.forEach(n => {
-    const best = streakBest[n]||0;
+  const displayMax = maxSeen + 2;
+  for (let n = 1; n <= displayMax; n++) {
+    const best = streakBest[n] || 0;
     const isCur = (n === curStreakNum);
     const hot = isCur && curStreakCount >= 3;
     const row = document.createElement('div');
     row.className = 'bar-row';
+    // 絵文字表示時にレイアウトが変わらないよう最小高さを確保
+    row.style.minHeight = '22px';
+    if (best === 0) row.style.opacity = '0.3';
     row.innerHTML = `
       <div class="bar-label" style="opacity:${isCur?1:0.6};color:${isCur?'var(--accent)':'var(--fg)'}">${n}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${(best/maxV*100).toFixed(1)}%;${hot?'background:#ffd700;box-shadow:0 0 8px rgba(255,215,0,0.5)':''}"></div></div>
-      <div class="bar-count" style="opacity:${isCur?1:0.4};color:${isCur?'var(--accent)':'var(--fg)'};font-size:${isCur&&curStreakCount>1?'13px':'10px'};font-weight:${isCur?'bold':'normal'};">
+      <div class="bar-count" style="min-width:52px;opacity:${isCur?1:0.4};color:${isCur?'var(--accent)':'var(--fg)'};font-size:${isCur&&curStreakCount>1?'13px':'10px'};font-weight:${isCur?'bold':'normal'};">
         ${isCur && curStreakCount > 1 ? curStreakCount+(currentTheme.streakSymbol||'🔥') : best}
       </div>`;
     el.appendChild(row);
-  });
+  }
 }
 
 // ────────────────────────────────
@@ -1250,7 +1279,7 @@ function updateDisplay(n) {
   const el=document.getElementById('bigNumber');
   if (currentTheme.gentle) {
     el.classList.remove('flash');
-    const kanjiTextG = currentTheme.kanji ? toKanji(n) : n;
+    const kanjiTextG = currentTheme.roman ? toRoman(n) : currentTheme.kanji ? toKanji(n) : n;
     el.textContent = kanjiTextG;
     if (currentTheme.kanji) {
       const lenG = String(kanjiTextG).length;
@@ -1275,7 +1304,7 @@ function updateDisplay(n) {
     el.style.opacity='1';
     el.classList.remove('flash'); void el.offsetWidth;
     lastDisplayedN = n;
-    const kanjiText = currentTheme.kanji ? toKanji(n) : n;
+    const kanjiText = currentTheme.roman ? toRoman(n) : currentTheme.kanji ? toKanji(n) : n;
     el.textContent = kanjiText;
     if (currentTheme.kanji) {
       const len = String(kanjiText).length;
@@ -1449,6 +1478,7 @@ function saveState() {
     const data = {
       counts, total, maxSeen, streakBest,
       curStreakNum, curStreakCount, bestStreakNum, bestStreakCount, lastSeen,
+      recentPositions,
       numHistory, historyBaseStreakBest, historyBaseCurNum, historyBaseCurCount,
       themeId: currentTheme.id, langKey: currentLangKey, scaleMode, gameMode,
     };
@@ -1479,8 +1509,8 @@ function loadState() {
     bestStreakNum = data.bestStreakNum || null;
     bestStreakCount = data.bestStreakCount || 0;
     Object.assign(lastSeen, data.lastSeen || {});
-    // recentPositionsはnumHistoryから毎回再構築（保存データを使わない）
     Object.keys(recentPositions).forEach(k => delete recentPositions[k]);
+    Object.assign(recentPositions, data.recentPositions || {});
     if (data.numHistory) {
       numHistory.length = 0;
       // 旧形式（{n,...}）との互換性、かつ数値のみ保持
@@ -1670,13 +1700,19 @@ function renderBarsFromStats(stats) {
         document.addEventListener('touchmove', moveHandler, { passive: true, once: true });
         probHoldTimer = setTimeout(() => {
           if (!moved) {
-            // メイン数字を更新
-            const el = document.getElementById('bigNumber');
-            const kanjiText = currentTheme.kanji ? toKanji(n) : n;
-            el.textContent = kanjiText;
-            el.style.marginTop = currentTheme.id === 'kawaii' ? '-30px' : '';
-            document.getElementById('probLabel').textContent = `P = ${frac(n)}`;
-            triggerEffect(n);
+            // 0回の数字はメイン数字更新・演出なし、直近データのみ
+            if ((counts[n] || 0) > 0) {
+              const el = document.getElementById('bigNumber');
+              const kanjiText = currentTheme.roman ? toRoman(n) : currentTheme.kanji ? toKanji(n) : n;
+              el.style.transition = '';
+              el.style.opacity = '1';
+              el.classList.remove('flash'); void el.offsetWidth;
+              el.textContent = kanjiText;
+              el.style.marginTop = currentTheme.id === 'kawaii' ? '-30px' : '';
+              el.classList.add('flash');
+              document.getElementById('probLabel').textContent = `P = ${frac(n)}`;
+              triggerEffect(n);
+            }
             // 直近データを表示
             showHistoryChart(n);
           }
@@ -1725,7 +1761,7 @@ function showHistoryAt(idx) {
   el.style.transition = 'opacity 0.1s';
   el.style.opacity = '0';
   setTimeout(() => {
-    el.textContent = currentTheme.kanji ? toKanji(n) : n;
+    el.textContent = currentTheme.roman ? toRoman(n) : currentTheme.kanji ? toKanji(n) : n;
     document.getElementById('probLabel').textContent = `P = ${frac(n)}`;
     el.style.opacity = '1';
     if (!currentTheme.gentle) triggerEffect(n);
@@ -1987,64 +2023,125 @@ document.addEventListener('touchmove', onBarTouchMove, { passive: true });
 // ── 履歴パネル ──
 function showHistoryChart(n) {
   const positions = recentPositions[n] || [];
-  if (positions.length < 1) return;
-
-  // 最初のバーは初出現位置、残りは間隔
-  const gaps = [positions[0]];
-  for (let i = 1; i < positions.length; i++) {
-    gaps.push(positions[i] - positions[i-1]);
-  }
-  const recentGaps = gaps.slice(-100);
-  if (recentGaps.length === 0) return;
-  const maxGap = Math.max(...recentGaps, 1);
   const panel = document.getElementById('historyPanel');
   const title = document.getElementById('historyPanelTitle');
   const barsEl = document.getElementById('historyBars');
   const sub = document.getElementById('historyPanelSub');
 
-  title.textContent = `${n} ${currentLang.historyTitle ?? 'の出現間隔（直近'}${recentGaps.length}${currentLang.historyTitleSuffix ?? '回）'}　P = ${frac(n)}`;
+  title.textContent = `${n} ${currentLang.historyTitle ?? 'の出現間隔（直近'}${positions.length > 0 ? Math.min(positions.length, 100) : 0}${currentLang.historyTitleSuffix ?? '回）'}　P = ${frac(n)}`;
   barsEl.innerHTML = '';
 
-  recentGaps.forEach((gap, i) => {
-    const pct = Math.max((gap / maxGap) * 72, 2);
-    const wrap = document.createElement('div');
-    wrap.className = 'h-bar-wrap';
-    const bar = document.createElement('div');
-    bar.className = 'h-bar';
-    bar.style.height = `${pct}px`;
-    const brightness = 0.4 + (i / recentGaps.length) * 0.6;
-    bar.style.opacity = brightness.toFixed(2);
-    const lbl = document.createElement('div');
-    lbl.className = 'h-bar-label';
-    lbl.textContent = gap;
-    wrap.appendChild(bar);
-    wrap.appendChild(lbl);
-    barsEl.appendChild(wrap);
-  });
+  if (positions.length >= 1) {
+    // 最初のバーは初出現位置、残りは間隔
+    const gaps = [positions[0]];
+    for (let i = 1; i < positions.length; i++) {
+      gaps.push(positions[i] - positions[i-1]);
+    }
+    const recentGaps = gaps.slice(-100);
+    const maxGap = Math.max(...recentGaps, 1);
+  const minGap = Math.min(...recentGaps);
+  const maxIdx = recentGaps.lastIndexOf(maxGap);
+  const minIdx = recentGaps.indexOf(minGap);
 
-  barsEl.scrollLeft = barsEl.scrollWidth;
+    recentGaps.forEach((gap, i) => {
+      const pct = Math.max((gap / maxGap) * 72, 2);
+      const wrap = document.createElement('div');
+      wrap.className = 'h-bar-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'h-bar';
+      bar.style.height = `${pct}px`;
+      if (i === maxIdx) {
+        bar.style.background = 'var(--fg)';
+        bar.style.opacity = '1';
+      } else if (i === minIdx) {
+        bar.style.background = 'var(--accent)';
+        bar.style.opacity = '0.45';
+      } else {
+        const brightness = 0.4 + (i / recentGaps.length) * 0.6;
+        bar.style.opacity = brightness.toFixed(2);
+      }
+      const lbl = document.createElement('div');
+      lbl.className = 'h-bar-label';
+      lbl.textContent = gap;
+      wrap.appendChild(bar);
+      wrap.appendChild(lbl);
+      barsEl.appendChild(wrap);
+    });
+    barsEl.scrollLeft = barsEl.scrollWidth;
+  }
 
-  const avgRecent = recentGaps.length > 0
-    ? (recentGaps.reduce((a,b) => a+b, 0) / recentGaps.length).toFixed(1)
+  const avgRecent = positions.length >= 2
+    ? (() => {
+        const gaps = [];
+        for (let i = 1; i < positions.length; i++) gaps.push(positions[i] - positions[i-1]);
+        const rg = gaps.slice(-100);
+        return (rg.reduce((a,b)=>a+b,0)/rg.length).toFixed(1);
+      })()
     : '—';
   const avgTotal = (counts[n] && counts[n] > 0)
     ? (total / counts[n]).toFixed(1)
     : '—';
   const totalCount = counts[n] || 0;
-  const expected = (total / Math.pow(2, n)).toFixed(1);
+  const expectedVal = total * Math.pow(2, -n);
+  const expected = expectedVal.toFixed(expectedVal < 1 ? 3 : 1);
   const p = Math.pow(2, -n);
-  const stddev = total > 0 ? Math.sqrt(total * p * (1 - p)) : 0;
-  const stddevStr = stddev > 0 ? stddev.toFixed(1) : '—';
-  // Z値（標準化された偏差）
-  const z = stddev > 0 ? ((totalCount - parseFloat(expected)) / stddev) : 0;
-  const zStr = stddev > 0 ? z.toFixed(2) : '—';
-  // |Z|以内になる確率（標準正規分布の両側）= erf(|z|/√2)
+
   function erf(x) {
     const t = 1 / (1 + 0.3275911 * Math.abs(x));
     const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
     return x >= 0 ? y : -y;
   }
-  const probWithin = stddev > 0 ? ((1 - erf(Math.abs(z) / Math.sqrt(2))) * 100).toFixed(1) : '—';
+
+  let stddevStr, zStr, probStr, distLabel;
+  distLabel = currentLang.historyZscore ?? 'Z値:';
+
+  if (expectedVal >= 5) {
+    // 正規近似
+    const stddev = Math.sqrt(total * p * (1 - p));
+    const z = (totalCount - expectedVal) / stddev;
+    stddevStr = stddev.toFixed(1);
+    zStr = z.toFixed(2);
+    const probBeyond = (1 - erf(Math.abs(z) / Math.sqrt(2))) * 100;
+    probStr = probBeyond.toFixed(probBeyond < 0.1 ? 3 : 1) + '%';
+    distLabel = currentLang.historyZscore ?? 'Z値:';
+  } else {
+    // ポアソン近似
+    const lambda = expectedVal;
+    // P(X <= k)を計算
+    let poissonCDF = 0;
+    let logLambda = lambda > 0 ? Math.log(lambda) : 0;
+    let logFactorial = 0;
+    let pmfK = 0;
+    for (let i = 0; i <= totalCount; i++) {
+      if (i > 0) logFactorial += Math.log(i);
+      const pmf = lambda > 0 ? Math.exp(-lambda + i * logLambda - logFactorial) : (i === 0 ? 1 : 0);
+      poissonCDF += pmf;
+      if (i === totalCount) pmfK = pmf;
+    }
+    // 正確なポアソン両側p値
+    // P(X=i) <= P(X=k) となる全iの確率の合計
+    let logLambda2 = lambda > 0 ? Math.log(lambda) : 0;
+    // まずP(X=k)を計算
+    let logFactK = 0;
+    for (let i = 1; i <= totalCount; i++) logFactK += Math.log(i);
+    const pmfKval = lambda > 0 ? Math.exp(-lambda + totalCount * logLambda2 - logFactK) : (totalCount === 0 ? 1 : 0);
+    // P(X=i) <= pmfKval となる全iの確率を合計（十分大きいiまで）
+    let pval = 0;
+    let logFact = 0;
+    const maxI = Math.max(totalCount * 3 + 30, 100);
+    for (let i = 0; i <= maxI; i++) {
+      if (i > 0) logFact += Math.log(i);
+      const pmfI = lambda > 0 ? Math.exp(-lambda + i * logLambda2 - logFact) : (i === 0 ? 1 : 0);
+      if (pmfI <= pmfKval + 1e-10) pval += pmfI;
+    }
+    pval = Math.min(pval, 1) * 100;
+    stddevStr = Math.sqrt(lambda).toFixed(2) + ' (Po)';
+    zStr = lambda > 0 ? ((totalCount - lambda) / Math.sqrt(lambda)).toFixed(2) + ' (Po)' : '—';
+    probStr = pval.toFixed(pval < 0.1 ? 3 : 1) + '%';
+    distLabel = currentLang.historyZscore ?? 'Z値:';
+  }
+
+  document.getElementById('historyPanelTotal').textContent = `TOTAL: ${total.toLocaleString()}`;
 
   sub.innerHTML = `
     <span>${currentLang.historyAvgRecent ?? '直近平均:'} ${avgRecent}</span>
@@ -2052,8 +2149,8 @@ function showHistoryChart(n) {
     <span>${currentLang.historyTotalCount ?? '総出現:'} ${totalCount}</span>
     <span>${currentLang.historyExpected ?? '期待回数:'} ${expected}</span>
     <span>${currentLang.historyStddev ?? '標準偏差:'} ${stddevStr}</span>
-    <span>${currentLang.historyZscore ?? 'Z値:'} ${zStr}</span>
-    <span>${currentLang.historyProbWithin ?? '|Z|以上:'} ${probWithin}%</span>
+    <span>${distLabel} ${zStr}</span>
+    <span>${currentLang.historyProbWithin ?? '|Z|以上:'} ${probStr}</span>
   `;
 
   panel.classList.add('open');
@@ -2081,39 +2178,12 @@ document.addEventListener('mouseover', (e) => {
 });
 
 // ── スプラッシュ制御 ──
-const SPLASH_MIN = 1500;
-const splashStart = performance.now();
-
-function dismissSplash() {
-  const logo = document.getElementById('splashLogo');
-  const overlay = document.getElementById('splashOverlay');
-  if (logo) logo.style.opacity = '0';
-  setTimeout(() => {
-    if (overlay) overlay.style.opacity = '0';
-    setTimeout(() => {
-      if (logo) logo.remove();
-      if (overlay) overlay.remove();
-    }, 800);
-  }, 400);
-}
-
-// ロゴをすぐフェードイン（ブラウザが初期opacity:0を認識してから変更）
-requestAnimationFrame(() => requestAnimationFrame(() => {
-  const logo = document.getElementById('splashLogo');
-  if (logo) logo.style.opacity = '1';
-}));
-
 if (loadState()) {
   renderBars();
   renderStreak();
   document.getElementById('totalCount').textContent = total;
   document.getElementById('maxSeen').textContent = maxSeen || '—';
 }
-
-// ゲーム準備完了 → 最低表示時間残りを待ってdismiss
-const elapsed = performance.now() - splashStart;
-const remaining = Math.max(0, SPLASH_MIN - elapsed);
-setTimeout(dismissSplash, remaining);
 
 // インターバル開始
 setTimeout(() => {
