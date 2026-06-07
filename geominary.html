@@ -343,6 +343,7 @@
   .meta {
     display: flex; gap: 40px; font-size: 11px;
     letter-spacing: 0.15em; color: var(--fg); opacity: 0.4; flex-shrink: 0;
+    padding-bottom: 24px;
   }
   .meta span { display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .meta strong { color: var(--accent); opacity: 1; font-size: 18px; font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; transition: color 0.5s; }
@@ -1076,7 +1077,7 @@ function renderBars() {
       const v = c > 0 ? Math.log2(c) : 0;
       const maxV = Math.log2(Math.max(maxC, 1));
       pct = maxV > 0 ? (v / maxV * 100).toFixed(1) : 0;
-      label = c > 0 ? v.toFixed(2) : 0;
+      label = c > 0 ? v.toFixed(2) : '—';
     } else if (scaleMode === 'norm') {
       const ratio = (total > 0 && c > 0) ? c / total : 0;
       const nv = ratio > 0 ? Math.log2(ratio) / (-n) : null;
@@ -1095,8 +1096,7 @@ function renderBars() {
     const row = document.createElement('div');
     row.className = 'bar-row';
     if (c === 0) {
-      row.style.opacity = scaleMode === 'log2c' ? '0' : '0.3';
-      if (scaleMode === 'log2c') row.style.pointerEvents = 'none';
+      row.style.opacity = '0.3';
     }
     row.innerHTML = `
       <div class="bar-label">${n}</div>
@@ -1118,6 +1118,7 @@ function renderBars() {
         probHoldTimer = setTimeout(() => {
           if (!moved) {
             // 0回の数字はメイン数字更新・演出なし、直近データのみ
+            // 0回以外はメイン数字更新・演出あり
             if ((counts[n] || 0) > 0) {
               const el = document.getElementById('bigNumber');
               const kanjiText = currentTheme.roman ? toRoman(n) : currentTheme.kanji ? toKanji(n) : n;
@@ -1130,7 +1131,7 @@ function renderBars() {
               document.getElementById('probLabel').textContent = `P = ${frac(n)}`;
               triggerEffect(n);
             }
-            // 直近データを表示
+            // 0回でも直近データパネルは表示
             showHistoryChart(n);
           }
         }, 200);
@@ -1654,10 +1655,12 @@ function calcStatsAt(idx) {
 
 function renderBarsFromStats(stats) {
   const el = document.getElementById('bars');
-  const keys = Object.keys(stats.counts).map(Number).sort((a,b)=>a-b);
-  const maxC = Math.max(...Object.values(stats.counts), 1);
+  const countValues = Object.values(stats.counts);
+  const maxC = countValues.length > 0 ? Math.max(...countValues, 1) : 1;
+  const displayMax = (stats.maxSeen || 0) + 2;
+  if (displayMax <= 2) { el.innerHTML = ''; return; }
   el.innerHTML = '';
-  keys.forEach(n => {
+  for (let n = 1; n <= displayMax; n++) {
     const cv = stats.counts[n]||0;
     let pct, label;
     if (scaleMode === 'log2c') {
@@ -1701,6 +1704,7 @@ function renderBarsFromStats(stats) {
         probHoldTimer = setTimeout(() => {
           if (!moved) {
             // 0回の数字はメイン数字更新・演出なし、直近データのみ
+            // 0回以外はメイン数字更新・演出あり
             if ((counts[n] || 0) > 0) {
               const el = document.getElementById('bigNumber');
               const kanjiText = currentTheme.roman ? toRoman(n) : currentTheme.kanji ? toKanji(n) : n;
@@ -1713,7 +1717,7 @@ function renderBarsFromStats(stats) {
               document.getElementById('probLabel').textContent = `P = ${frac(n)}`;
               triggerEffect(n);
             }
-            // 直近データを表示
+            // 0回でも直近データパネルは表示
             showHistoryChart(n);
           }
         }, 200);
@@ -1721,8 +1725,11 @@ function renderBarsFromStats(stats) {
         onBarTouchStart(n, e);
       }
     }, { passive: true });
+    if (cv === 0) {
+      row.style.opacity = '0.3';
+    }
     el.appendChild(row);
-  });
+  }
 }
 
 function renderStreakFromStats(stats) {
