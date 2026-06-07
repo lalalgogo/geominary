@@ -2084,7 +2084,7 @@ function showHistoryChart(n) {
         const rg = gaps.slice(-100);
         return (rg.reduce((a,b)=>a+b,0)/rg.length).toFixed(1);
       })()
-    : '—';
+    : positions.length === 1 ? positions[0].toFixed(1) : '—';
   const avgTotal = (counts[n] && counts[n] > 0)
     ? (total / counts[n]).toFixed(1)
     : '—';
