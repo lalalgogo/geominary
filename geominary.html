@@ -45,7 +45,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    overflow-x: hidden; overflow-y: clip;
     transition: background 0.6s, color 0.5s;
   }
   @media (prefers-color-scheme: light) {
@@ -396,7 +396,7 @@
   /* ── 履歴パネル ── */
   #historyPanel {
     position: fixed;
-    bottom: -300px;
+    bottom: -340px;
     left: 0; right: 0;
     z-index: 250;
     background: var(--bg);
@@ -425,8 +425,9 @@
     display: flex;
     align-items: flex-end;
     gap: 3px;
-    height: 80px;
+    height: 60px;
     overflow-x: auto;
+    overflow-y: hidden;
     padding-bottom: 4px;
   }
   #historyBars::-webkit-scrollbar { height: 3px; }
@@ -2038,20 +2039,20 @@ function showHistoryChart(n) {
   title.textContent = `${n} ${currentLang.historyTitle ?? 'の出現間隔（直近'}${positions.length > 0 ? Math.min(positions.length, 100) : 0}${currentLang.historyTitleSuffix ?? '回）'}　P = ${frac(n)}`;
   barsEl.innerHTML = '';
 
+  let recentGaps = [];
   if (positions.length >= 1) {
-    // 最初のバーは初出現位置、残りは間隔
     const gaps = [positions[0]];
     for (let i = 1; i < positions.length; i++) {
       gaps.push(positions[i] - positions[i-1]);
     }
-    const recentGaps = gaps.slice(-100);
+    recentGaps = gaps.slice(-100);
     const maxGap = Math.max(...recentGaps, 1);
-  const minGap = Math.min(...recentGaps);
-  const maxIdx = recentGaps.lastIndexOf(maxGap);
-  const minIdx = recentGaps.indexOf(minGap);
+    const minGap = Math.min(...recentGaps);
+    const maxIdx = recentGaps.lastIndexOf(maxGap);
+    const minIdx = recentGaps.indexOf(minGap);
 
     recentGaps.forEach((gap, i) => {
-      const pct = Math.max((gap / maxGap) * 72, 2);
+      const pct = Math.max((gap / maxGap) * 40, 2);
       const wrap = document.createElement('div');
       wrap.className = 'h-bar-wrap';
       const bar = document.createElement('div');
@@ -2077,14 +2078,9 @@ function showHistoryChart(n) {
     barsEl.scrollLeft = barsEl.scrollWidth;
   }
 
-  const avgRecent = positions.length >= 2
-    ? (() => {
-        const gaps = [];
-        for (let i = 1; i < positions.length; i++) gaps.push(positions[i] - positions[i-1]);
-        const rg = gaps.slice(-100);
-        return (rg.reduce((a,b)=>a+b,0)/rg.length).toFixed(1);
-      })()
-    : positions.length === 1 ? positions[0].toFixed(1) : '—';
+  const avgRecent = recentGaps.length > 0
+    ? (recentGaps.reduce((a,b)=>a+b,0)/recentGaps.length).toFixed(1)
+    : '—';
   const avgTotal = (counts[n] && counts[n] > 0)
     ? (total / counts[n]).toFixed(1)
     : '—';
