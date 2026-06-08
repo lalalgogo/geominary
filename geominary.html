@@ -2279,11 +2279,10 @@ document.getElementById('bgLogo').addEventListener('touchstart', (e) => {
   bgLogo.classList.remove('logo-tappable');
 });
 
-// カスタム確認ダイアログ
-function showTheaterExitDialog(onOk) {
+// カスタム確認ダイアログ（汎用）
+function showConfirmDialog(msg, onOk) {
   const dlg = document.getElementById('theaterExitDialog');
-  document.getElementById('dlgExitMsg').textContent =
-    currentLang.theaterExitConfirm || 'シアターモードを終了しますか？';
+  document.getElementById('dlgExitMsg').textContent = msg;
   dlg.classList.add('visible');
   const ok = document.getElementById('dlgExitOk');
   const cancel = document.getElementById('dlgExitCancel');
@@ -2296,6 +2295,10 @@ function showTheaterExitDialog(onOk) {
   function onClickCancel() { cleanup(); }
   ok.addEventListener('click', onClickOk);
   cancel.addEventListener('click', onClickCancel);
+}
+
+function showTheaterExitDialog(onOk) {
+  showConfirmDialog(currentLang.theaterExitConfirm || 'シアターモードを終了しますか？', onOk);
 }
 
 function exitTheater() {
@@ -2487,13 +2490,21 @@ function loadPoints() {
       points = data.points || 0;
       pointsHistory = data.history || [];
       document.getElementById('pointsDisplay').textContent = points.toLocaleString();
+      if (data.effectEnabled === true) {
+        pointsEffectEnabled = true;
+        const btn = document.getElementById('togglePointsEffect');
+        const knob = btn.querySelector('span');
+        btn.style.background = 'var(--accent)';
+        knob.style.transform = 'translateX(18px)';
+        document.getElementById('pointsTap').style.display = '';
+      }
     }
   } catch(e) {}
 }
 
 function savePoints() {
   try {
-    localStorage.setItem(POINTS_KEY, JSON.stringify({ points, history: pointsHistory }));
+    localStorage.setItem(POINTS_KEY, JSON.stringify({ points, history: pointsHistory, effectEnabled: pointsEffectEnabled }));
   } catch(e) {}
 }
 
@@ -2624,6 +2635,7 @@ document.getElementById('togglePointsEffect').addEventListener('click', () => {
   btn.style.background = pointsEffectEnabled ? 'var(--accent)' : 'var(--mid)';
   knob.style.transform = pointsEffectEnabled ? 'translateX(18px)' : 'translateX(0)';
   document.getElementById('pointsTap').style.display = pointsEffectEnabled ? '' : 'none';
+  savePoints();
 });
 
 function renderPointsPanel() {
@@ -2689,11 +2701,12 @@ function renderPointsPanel() {
     item.querySelector('.pts-del').addEventListener('click', (e) => {
       e.stopPropagation();
       if (rec.favId !== undefined) return;
-      if (!confirm(currentLang.pointsDeleteConfirm || '削除しますか？')) return;
       const idx = pointsHistory.length - 1 - i;
-      pointsHistory.splice(idx, 1);
-      savePoints();
-      renderPointsPanel();
+      showConfirmDialog(currentLang.pointsDeleteConfirm || '削除しますか？', () => {
+        pointsHistory.splice(idx, 1);
+        savePoints();
+        renderPointsPanel();
+      });
     });
     item.style.cursor = 'pointer';
     let holdTimer = null;
@@ -2743,6 +2756,7 @@ document.addEventListener('touchstart', (e) => {
   const panel = document.getElementById('pointsPanel');
   if (!panel.classList.contains('open')) return;
   if (e.target.closest('#pointsPanel')) return;
+  if (e.target.closest('#theaterExitDialog')) return;
   panel.classList.remove('open');
 }, { passive: true });
 
