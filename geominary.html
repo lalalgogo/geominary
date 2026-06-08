@@ -243,6 +243,8 @@
     position: relative; width: 280px; height: 280px;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
+    top: 0px;
+    transition: top 0.2s;
   }
   .ring {
     position: absolute; inset: 0; border-radius: 50%;
@@ -269,6 +271,67 @@
     position: relative; z-index: 1;
     min-width: 1ch; text-align: center;
     transition: text-shadow 0.5s, color 0.5s;
+  }
+  #theaterExitDialog {
+    display: none;
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,0.6);
+    align-items: center; justify-content: center;
+  }
+  #theaterExitDialog.visible { display: flex; }
+  #theaterExitDialog .dlg-box {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px 28px;
+    text-align: center;
+    max-width: 280px;
+    width: 80%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  #theaterExitDialog .dlg-msg {
+    font-size: 15px;
+    color: var(--fg);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  #theaterExitDialog .dlg-btns {
+    display: flex; gap: 12px; justify-content: center;
+  }
+  #theaterExitDialog .dlg-btns button {
+    flex: 1; padding: 10px 0;
+    border: none; border-radius: 10px;
+    font-size: 14px; font-weight: bold; cursor: pointer;
+  }
+  #theaterExitDialog #dlgExitOk { background: var(--accent); color: var(--bg); }
+  #theaterExitDialog #dlgExitCancel { background: var(--mid); color: var(--fg); }
+  #theaterMoveCtrl {
+    display: none;
+    position: fixed;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 200;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  #theaterMoveCtrl.visible { display: flex; }
+  #theaterMoveCtrl button {
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    width: 44px; height: 44px;
+    font-size: 20px;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+  }
+  #theaterMoveCtrl #theaterResetPos {
+    border-radius: 20px;
+    width: auto;
+    padding: 0 14px;
+    font-size: 12px;
+    height: 32px;
   }
   #bigNumber.flash { animation: flash 0.15s ease-out; }
   @keyframes flash {
@@ -641,6 +704,20 @@
 
 <canvas id="fxCanvas"></canvas>
 <div id="flashOverlay"></div>
+<div id="theaterMoveCtrl">
+  <button id="theaterMoveUp">▲</button>
+  <button id="theaterResetPos">⊙</button>
+  <button id="theaterMoveDown">▼</button>
+</div>
+<div id="theaterExitDialog">
+  <div class="dlg-box">
+    <div class="dlg-msg" id="dlgExitMsg">シアターモードを終了しますか？</div>
+    <div class="dlg-btns">
+      <button id="dlgExitOk">OK</button>
+      <button id="dlgExitCancel">キャンセル</button>
+    </div>
+  </div>
+</div>
 <div id="probPopup"></div>
 
 <div id="resetOverlay" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.7);
@@ -735,11 +812,11 @@
       <span style="font-size:12px;letter-spacing:0.1em;color:#e8f4f8;opacity:0.7;" id="labelPointsEffect">ポイント演出</span>
       <button id="togglePointsEffect" style="
         width:40px;height:22px;border-radius:11px;border:none;cursor:pointer;
-        background:var(--accent);position:relative;flex-shrink:0;transition:background 0.2s;
+        background:var(--mid);position:relative;flex-shrink:0;transition:background 0.2s;
       "><span style="
         position:absolute;top:3px;left:3px;width:16px;height:16px;
         border-radius:50%;background:#fff;transition:transform 0.2s;
-        display:block;transform:translateX(18px);
+        display:block;transform:translateX(0);
       "></span></button>
     </div>
   </div>
@@ -835,7 +912,7 @@
   <div class="meta">
     <span id="totalTap" style="cursor:pointer;"><strong id="totalCount">0</strong>TOTAL</span>
     <span id="maxTap" style="cursor:pointer;"><strong id="maxSeen">—</strong><span id="labelMax">MAX</span></span>
-    <span style="cursor:pointer;" id="pointsTap"><strong id="pointsDisplay">0</strong>PTS</span>
+    <span style="cursor:pointer;display:none;" id="pointsTap"><strong id="pointsDisplay">0</strong>PTS</span>
   </div>
   <div id="playbackBar">
     <div class="seek-btns">
@@ -1025,16 +1102,16 @@ THEMES.forEach(t => {
 // 言語システム
 // ────────────────────────────────
 const LANGS = {
-  ja: { flag:'🇯🇵', name:'日本語', themeNames:['サイバー','和風','ミニマル','ネオン','カフェ','かわいい','やすらぎ','ファンタジー'], tabCount:'出現回数', tabStreak:'連続記録', scaleLabels:['回数','log₂','正規化'], prob:' の確率：', resetTitle:'モードを選んでリセット', resetRandom:'通常モード（確率）', resetBinary:'2進数モード', resetCancel:'キャンセル', secTheme:'テーマ', secDisplay:'表示スケール', secLang:'言語', secAppearance:'表示設定', labelTheater:'シアターモード', labelEffects:'演出エフェクト', scaleBtnLabels:['回数（通常）', 'log₂(回数)', 'log₂(回数/total) / (-n)'], fire:'発火🔥', lastAt:'最後:', lastUnit:'回目', lastNone:'記録なし', normal:'×1', replayFrom:'▶ ここから再現', replayStop:'■ 停止', historyTitle:'の出現間隔（直近', historyTitleSuffix:'回）', historyAvg:'平均間隔:', historyLast:'最後:', historyLastUnit:'回目', historyAvgRecent:'直近平均:', historyAvgTotal:'総平均:', historyExpected:'期待回数:', historyTotalCount:'総出現:', historyStddev:'標準偏差:', historyZscore:'Z値:', historyProbWithin:'|Z|以上:', secData:'データ', btnExport:'📋 データをコピー', btnImport:'📥 データを読み込む', dataCopied:'✓ コピーしました！', dataCopyManual:'長押しでコピーしてください', dataEmpty:'データがありません', dataError:'エラーが発生しました', dataPaste:'データを貼り付けてください', dataInvalid:'無効なデータです', dataLoaded:'✓ 読み込み完了！', btnImportConfirm:'読み込む', pointsHistory:'ポイント履歴', pointsClearAll:'全消し', pointsRarity:'レア度', pointsTotal:'TOTAL', pointsAgo:'回ぶり！', pointsStreak:'連続！', pointsEffectLabel:'ポイント演出', shareAgo:(n,k)=>`GeoMinaryで${n}が${k}回ぶり！`, shareStreak:(n,k)=>`GeoMinaryで${n}が${k}連続！`, shareProb:(n,p)=>`GeoMinaryで${n}が出た！P=1/${p}` },
-  en: { flag:'🇺🇸', name:'English', themeNames:['Cyber','Wabi','Minimal','Neon','Cafe','Kawaii','Yasuragi','Fantasy'], tabCount:'Count', tabStreak:'Streak', scaleLabels:['Count','log₂','Norm'], prob:' probability: ', resetTitle:'Select mode to reset', resetRandom:'Normal mode (random)', resetBinary:'Binary mode', resetCancel:'Cancel', secTheme:'Theme', secDisplay:'Scale', secLang:'Language', secAppearance:'Display', labelTheater:'Theater mode', labelEffects:'Effects', scaleBtnLabels:['Count (normal)', 'log₂(Count)', 'log₂(Count/total) / (-n)'], fire:'Fire🔥', lastAt:'Last:', lastUnit:'', lastNone:'No record', normal:'×1', replayFrom:'▶ Replay from here', replayStop:'■ Stop', historyTitle:'Interval for', historyTitleSuffix:'recent)', historyAvg:'Avg interval:', historyLast:'Last:', historyLastUnit:'', historyAvgRecent:'Recent avg:', historyAvgTotal:'Total avg:', historyExpected:'Expected:', historyTotalCount:'Total count:', historyStddev:'Std dev:', historyZscore:'Z-score:', historyProbWithin:'Beyond |Z|:', secData:'Data', btnExport:'📋 Copy Data', btnImport:'📥 Load Data', dataCopied:'✓ Copied!', dataCopyManual:'Long-press to copy', dataEmpty:'No data', dataError:'Error occurred', dataPaste:'Paste data here', dataInvalid:'Invalid data', dataLoaded:'✓ Loaded!', btnImportConfirm:'Load', pointsHistory:'Point History', pointsClearAll:'Clear All', pointsRarity:'Rarity', pointsTotal:'TOTAL', pointsAgo:'th time!', pointsStreak:'streak!', pointsEffectLabel:'Point Effects', shareAgo:(n,k)=>`GeoMinary: ${n} after ${k} turns!`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} streak!`, shareProb:(n,p)=>`GeoMinary: ${n} appeared! P=1/${p}` },
-  zhCN: { flag:'🇨🇳', name:'中文(简体)', themeNames:['赛博','和风','极简','霓虹','咖啡','可爱','静谧','幻想'], tabCount:'出现次数', tabStreak:'连续记录', scaleLabels:['次数','log₂','标准化'], prob:' 概率：', resetTitle:'选择模式并重置', resetRandom:'普通模式（随机）', resetBinary:'二进制模式', resetCancel:'取消', secTheme:'主题', secDisplay:'显示比例', secLang:'语言', secAppearance:'显示设置', labelTheater:'剧院模式', labelEffects:'演出效果', scaleBtnLabels:['次数（普通）', 'log₂(次数)', 'log₂(次数/总计) / (-n)'], fire:'触发🔥', lastAt:'最后:', lastUnit:'次', lastNone:'无记录', normal:'×1', replayFrom:'▶ 从此处重放', replayStop:'■ 停止', secData:'数据', historyTitle:'的出现间隔（最近', historyTitleSuffix:'次）', historyAvg:'平均间隔:', historyLast:'最后:', historyLastUnit:'次', historyAvgRecent:'近期平均:', historyAvgTotal:'总平均:', historyExpected:'期望次数:', historyTotalCount:'总出现:', historyStddev:'标准差:', historyZscore:'Z值:', historyProbWithin:'|Z|外:', btnExport:'📋 复制数据', btnImport:'📥 读取数据', dataCopied:'✓ 已复制！', dataCopyManual:'长按复制', dataEmpty:'没有数据', dataError:'发生错误', dataPaste:'请粘贴数据', dataInvalid:'无效数据', dataLoaded:'✓ 读取完成！', btnImportConfirm:'读取', pointsHistory:'积分历史', pointsClearAll:'全部清除', pointsRarity:'稀有度', pointsTotal:'总计', pointsAgo:'次后！', pointsStreak:'连续！', pointsEffectLabel:'积分演出', shareAgo:(n,k)=>`GeoMinary中${n}隔了${k}次出现！`, shareStreak:(n,k)=>`GeoMinary中${n}连续${k}次！`, shareProb:(n,p)=>`GeoMinary中${n}出现了！P=1/${p}` },
-  zhTW: { flag:'🇹🇼', name:'中文(繁體)', themeNames:['賽博','和風','極簡','霓虹','咖啡','可愛','靜謐','奇幻'], tabCount:'出現次數', tabStreak:'連續記錄', scaleLabels:['次數','log₂','標準化'], prob:' 概率：', resetTitle:'選擇模式並重置', resetRandom:'普通模式（隨機）', resetBinary:'二進位模式', resetCancel:'取消', secTheme:'主題', secDisplay:'顯示比例', secLang:'語言', secAppearance:'顯示設置', labelTheater:'劇院模式', labelEffects:'演出效果', scaleBtnLabels:['次數（普通）', 'log₂(次數)', 'log₂(次數/總計) / (-n)'], fire:'觸發🔥', lastAt:'最後:', lastUnit:'次', lastNone:'無記錄', normal:'×1', replayFrom:'▶ 從此處重放', replayStop:'■ 停止', secData:'數據', historyTitle:'的出現間隔（最近', historyTitleSuffix:'次）', historyAvg:'平均間隔:', historyLast:'最後:', historyLastUnit:'次', historyAvgRecent:'近期平均:', historyAvgTotal:'總平均:', historyExpected:'期望次數:', historyTotalCount:'總出現:', historyStddev:'標準差:', historyZscore:'Z值:', historyProbWithin:'|Z|外:', btnExport:'📋 複製數據', btnImport:'📥 讀取數據', dataCopied:'✓ 已複製！', dataCopyManual:'長按複製', dataEmpty:'沒有數據', dataError:'發生錯誤', dataPaste:'請貼上數據', dataInvalid:'無效數據', dataLoaded:'✓ 讀取完成！', btnImportConfirm:'讀取', pointsHistory:'積分歷史', pointsClearAll:'全部清除', pointsRarity:'稀有度', pointsTotal:'總計', pointsAgo:'次後！', pointsStreak:'連續！', pointsEffectLabel:'積分演出', shareAgo:(n,k)=>`GeoMinary中${n}隔了${k}次出現！`, shareStreak:(n,k)=>`GeoMinary中${n}連續${k}次！`, shareProb:(n,p)=>`GeoMinary中${n}出現了！P=1/${p}` },
-  ko: { flag:'🇰🇷', name:'한국어', themeNames:['사이버','와비','미니멀','네온','카페','카와이','야스라기','판타지'], tabCount:'출현 횟수', tabStreak:'연속 기록', scaleLabels:['횟수','log₂','정규화'], prob:' 확률: ', resetTitle:'모드를 선택하여 초기화', resetRandom:'일반 모드 (확률)', resetBinary:'이진수 모드', resetCancel:'취소', secTheme:'테마', secDisplay:'표시 스케일', secLang:'언어', secAppearance:'표시 설정', labelTheater:'시어터 모드', labelEffects:'연출 효과', scaleBtnLabels:['횟수 (보통)', 'log₂(횟수)', 'log₂(횟수/총계) / (-n)'], fire:'발사🔥', lastAt:'마지막:', lastUnit:'번째', lastNone:'기록없음', normal:'×1', replayFrom:'▶ 여기서 재현', replayStop:'■ 정지', historyTitle:'의 출현 간격（최근', historyTitleSuffix:'회）', historyAvg:'평균 간격:', historyLast:'마지막:', historyLastUnit:'번째', historyAvgRecent:'최근 평균:', historyAvgTotal:'전체 평균:', historyExpected:'기대 횟수:', historyTotalCount:'총 출현:', historyStddev:'표준편차:', historyZscore:'Z값:', historyProbWithin:'|Z|이상:', secData:'데이터', btnExport:'📋 데이터 복사', btnImport:'📥 데이터 불러오기', dataCopied:'✓ 복사했습니다！', dataCopyManual:'길게 눌러 복사', dataEmpty:'데이터 없음', dataError:'오류 발생', dataPaste:'데이터를 붙여넣기', dataInvalid:'잘못된 데이터', dataLoaded:'✓ 불러오기 완료！', btnImportConfirm:'불러오기', pointsHistory:'포인트 기록', pointsClearAll:'전체 삭제', pointsRarity:'희귀도', pointsTotal:'총계', pointsAgo:'번째 등장！', pointsStreak:'연속！', pointsEffectLabel:'포인트 연출', shareAgo:(n,k)=>`GeoMinary에서 ${n}이 ${k}번 만에 등장！`, shareStreak:(n,k)=>`GeoMinary에서 ${n}이 ${k}연속！`, shareProb:(n,p)=>`GeoMinary에서 ${n} 등장！P=1/${p}` },
-  es: { flag:'🇪🇸', name:'Español', themeNames:['Ciber','Wabi','Minimal','Neón','Café','Kawaii','Sereno','Fantasía'], tabCount:'Conteo', tabStreak:'Racha', scaleLabels:['Conteo','log₂','Norm'], prob:' probabilidad: ', resetTitle:'Seleccionar modo', resetRandom:'Modo normal', resetBinary:'Modo binario', resetCancel:'Cancelar', secTheme:'Tema', secDisplay:'Escala', secLang:'Idioma', secAppearance:'Visualización', labelTheater:'Modo teatro', labelEffects:'Efectos', scaleBtnLabels:['Conteo (normal)', 'log₂(Conteo)', 'log₂(Conteo/total) / (-n)'], fire:'Lanzar🔥', lastAt:'Última:', lastUnit:'ª', lastNone:'Sin registro', normal:'×1', replayFrom:'▶ Reproducir desde aquí', replayStop:'■ Parar', secData:'Datos', historyTitle:'Intervalo de', historyTitleSuffix:'recientes)', historyAvg:'Intervalo medio:', historyLast:'Último:', historyLastUnit:'', historyAvgRecent:'Prom. reciente:', historyAvgTotal:'Prom. total:', historyExpected:'Esperado:', historyTotalCount:'Total:', historyStddev:'Desv. est.:', historyZscore:'Puntuación Z:', historyProbWithin:'Fuera |Z|:', btnExport:'📋 Copiar datos', btnImport:'📥 Cargar datos', dataCopied:'✓ Copiado！', dataCopyManual:'Mantén pulsado para copiar', dataEmpty:'Sin datos', dataError:'Error', dataPaste:'Pega los datos aquí', dataInvalid:'Datos inválidos', dataLoaded:'✓ Cargado！', btnImportConfirm:'Cargar', pointsHistory:'Historial', pointsClearAll:'Borrar todo', pointsRarity:'Rareza', pointsTotal:'TOTAL', pointsAgo:'tras ausencia！', pointsStreak:'racha！', pointsEffectLabel:'Efectos de puntos', shareAgo:(n,k)=>`GeoMinary: ${n} apareció tras ${k} turnos！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} racha！`, shareProb:(n,p)=>`GeoMinary: ¡Apareció ${n}！P=1/${p}` },
-  fr: { flag:'🇫🇷', name:'Français', themeNames:['Cyber','Wabi','Minimal','Néon','Café','Kawaii','Sérénité','Fantaisie'], tabCount:'Comptage', tabStreak:'Série', scaleLabels:['Comptage','log₂','Norm'], prob:' probabilité: ', resetTitle:'Choisir le mode', resetRandom:'Mode normal', resetBinary:'Mode binaire', resetCancel:'Annuler', secTheme:'Thème', secDisplay:'Échelle', secLang:'Langue', secAppearance:'Affichage', labelTheater:'Mode théâtre', labelEffects:'Effets', scaleBtnLabels:['Comptage (normal)', 'log₂(Comptage)', 'log₂(Comptage/total) / (-n)'], fire:'Lancer🔥', lastAt:'Dernier:', lastUnit:'ème', lastNone:'Aucun', normal:'×1', replayFrom:'▶ Rejouer depuis ici', replayStop:'■ Arrêter', historyTitle:'Intervalle de', historyTitleSuffix:'récents)', historyAvg:'Intervalle moy.:', historyLast:'Dernier:', historyLastUnit:'', historyAvgRecent:'Moy. récente:', historyAvgTotal:'Moy. totale:', historyExpected:'Attendu:', historyTotalCount:'Total:', historyStddev:'Écart-type:', historyZscore:'Score Z:', historyProbWithin:'Hors |Z|:', secData:'Données', btnExport:'📋 Copier données', btnImport:'📥 Charger données', dataCopied:'✓ Copié！', dataCopyManual:'Appui long pour copier', dataEmpty:'Pas de données', dataError:'Erreur', dataPaste:'Collez les données ici', dataInvalid:'Données invalides', dataLoaded:'✓ Chargé！', btnImportConfirm:'Charger', pointsHistory:'Historique', pointsClearAll:'Tout effacer', pointsRarity:'Rareté', pointsTotal:'TOTAL', pointsAgo:'tours après！', pointsStreak:'en série！', pointsEffectLabel:'Effets de points', shareAgo:(n,k)=>`GeoMinary: ${n} après ${k} tours！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} série！`, shareProb:(n,p)=>`GeoMinary: ${n} est apparu！P=1/${p}` },
-  pt: { flag:'🇧🇷', name:'Português', themeNames:['Cyber','Wabi','Minimal','Neon','Café','Kawaii','Serenidade','Fantasia'], tabCount:'Contagem', tabStreak:'Sequência', scaleLabels:['Contagem','log₂','Norm'], prob:' probabilidade: ', resetTitle:'Selecionar modo', resetRandom:'Modo normal', resetBinary:'Modo binário', resetCancel:'Cancelar', secTheme:'Tema', secDisplay:'Escala', secLang:'Idioma', secAppearance:'Exibição', labelTheater:'Modo teatro', labelEffects:'Efeitos', scaleBtnLabels:['Contagem (normal)', 'log₂(Contagem)', 'log₂(Contagem/total) / (-n)'], fire:'Disparar🔥', lastAt:'Última:', lastUnit:'ª', lastNone:'Sem registro', normal:'×1', replayFrom:'▶ Reproduzir daqui', replayStop:'■ Parar', secData:'Dados', historyTitle:'Intervalo de', historyTitleSuffix:'recentes)', historyAvg:'Intervalo médio:', historyLast:'Último:', historyLastUnit:'', historyAvgRecent:'Méd. recente:', historyAvgTotal:'Méd. total:', historyExpected:'Esperado:', historyTotalCount:'Total:', historyStddev:'Desvio pad.:', historyZscore:'Pontuação Z:', historyProbWithin:'Fora |Z|:', btnExport:'📋 Copiar dados', btnImport:'📥 Carregar dados', dataCopied:'✓ Copiado！', dataCopyManual:'Pressione para copiar', dataEmpty:'Sem dados', dataError:'Erro', dataPaste:'Cole os dados aqui', dataInvalid:'Dados inválidos', dataLoaded:'✓ Carregado！', btnImportConfirm:'Carregar', pointsHistory:'Histórico', pointsClearAll:'Limpar tudo', pointsRarity:'Raridade', pointsTotal:'TOTAL', pointsAgo:'turnos depois！', pointsStreak:'seguidos！', pointsEffectLabel:'Efeitos de pontos', shareAgo:(n,k)=>`GeoMinary: ${n} após ${k} turnos！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} seguidos！`, shareProb:(n,p)=>`GeoMinary: ${n} apareceu！P=1/${p}` },
-  ru: { flag:'🇷🇺', name:'Русский', themeNames:['Кибер','Ваби','Минимал','Неон','Кафе','Каваии','Покой','Фэнтези'], tabCount:'Счётчик', tabStreak:'Серия', scaleLabels:['Счёт','log₂','Норм'], prob:' вероятность: ', resetTitle:'Выберите режим', resetRandom:'Обычный режим', resetBinary:'Двоичный режим', resetCancel:'Отмена', secTheme:'Тема', secDisplay:'Масштаб', secLang:'Язык', secAppearance:'Вид', labelTheater:'Режим театра', labelEffects:'Эффекты', scaleBtnLabels:['Счёт (обычный)', 'log₂(Счёт)', 'log₂(Счёт/всего) / (-n)'], fire:'Огонь🔥', lastAt:'Последний:', lastUnit:'-й', lastNone:'Нет записи', normal:'×1', replayFrom:'▶ Воспроизвести отсюда', replayStop:'■ Стоп', secData:'Данные', historyTitle:'Интервалы для ', historyTitleSuffix:' (посл.)', historyAvg:'Ср. интервал:', historyLast:'Последний:', historyLastUnit:'-й', historyAvgRecent:'Ср. посл.:', historyAvgTotal:'Ср. всего:', historyExpected:'Ожидаемо:', historyTotalCount:'Всего:', historyStddev:'Ст. откл.:', historyZscore:'Z-оценка:', historyProbWithin:'|Z| и выше:', btnExport:'📋 Копировать', btnImport:'📥 Загрузить', dataCopied:'✓ Скопировано!', dataCopyManual:'Удерживайте для копирования', dataEmpty:'Нет данных', dataError:'Ошибка', dataPaste:'Вставьте данные', dataInvalid:'Неверные данные', dataLoaded:'✓ Загружено!', btnImportConfirm:'Загрузить', pointsHistory:'История очков', pointsClearAll:'Очистить всё', pointsRarity:'Редкость', pointsTotal:'ИТОГО', pointsAgo:'ходов！', pointsStreak:'подряд！', pointsEffectLabel:'Эффекты очков', shareAgo:(n,k)=>`GeoMinary: ${n} через ${k} ходов！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} подряд！`, shareProb:(n,p)=>`GeoMinary: выпало ${n}！P=1/${p}` },
-  de: { flag:'🇩🇪', name:'Deutsch', themeNames:['Cyber','Wabi','Minimal','Neon','Café','Kawaii','Stille','Fantasie'], tabCount:'Anzahl', tabStreak:'Serie', scaleLabels:['Anzahl','log₂','Norm'], prob:' Wahrsch.: ', resetTitle:'Modus wählen', resetRandom:'Normalmodus', resetBinary:'Binärmodus', resetCancel:'Abbrechen', secTheme:'Thema', secDisplay:'Skala', secLang:'Sprache', secAppearance:'Anzeige', labelTheater:'Theatermodus', labelEffects:'Effekte', scaleBtnLabels:['Anzahl (normal)', 'log₂(Anzahl)', 'log₂(Anzahl/gesamt) / (-n)'], fire:'Feuer🔥', lastAt:'Letztes:', lastUnit:'.', lastNone:'Kein Eintrag', normal:'×1', replayFrom:'▶ Von hier abspielen', replayStop:'■ Stopp', secData:'Daten', historyTitle:'Intervalle für ', historyTitleSuffix:' (letzt.)', historyAvg:'Ø Intervall:', historyLast:'Letztes:', historyLastUnit:'.', historyAvgRecent:'Akt. Ø:', historyAvgTotal:'Ges. Ø:', historyExpected:'Erwartet:', historyTotalCount:'Gesamt:', historyStddev:'Std.abw.:', historyZscore:'Z-Wert:', historyProbWithin:'|Z| u. mehr:', btnExport:'📋 Daten kopieren', btnImport:'📥 Daten laden', dataCopied:'✓ Kopiert!', dataCopyManual:'Gedrückt halten', dataEmpty:'Keine Daten', dataError:'Fehler', dataPaste:'Daten einfügen', dataInvalid:'Ungültige Daten', dataLoaded:'✓ Geladen!', btnImportConfirm:'Laden', pointsHistory:'Punkteverlauf', pointsClearAll:'Alle löschen', pointsRarity:'Seltenheit', pointsTotal:'GESAMT', pointsAgo:'Runden später！', pointsStreak:'mal hintereinander！', pointsEffectLabel:'Punkteeffekte', shareAgo:(n,k)=>`GeoMinary: ${n} nach ${k} Runden！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} Serie！`, shareProb:(n,p)=>`GeoMinary: ${n} erschienen！P=1/${p}` },
+  ja: { flag:'🇯🇵', name:'日本語', themeNames:['サイバー','和風','ミニマル','ネオン','カフェ','かわいい','やすらぎ','ファンタジー'], tabCount:'出現回数', tabStreak:'連続記録', scaleLabels:['回数','log₂','正規化'], prob:' の確率：', resetTitle:'モードを選んでリセット', resetRandom:'通常モード（確率）', resetBinary:'2進数モード', resetCancel:'キャンセル', secTheme:'テーマ', secDisplay:'表示スケール', secLang:'言語', secAppearance:'表示設定', labelTheater:'シアターモード', labelEffects:'演出エフェクト', scaleBtnLabels:['回数（通常）', 'log₂(回数)', 'log₂(回数/total) / (-n)'], fire:'発火🔥', lastAt:'最後:', lastUnit:'回目', lastNone:'記録なし', normal:'×1', replayFrom:'▶ ここから再現', replayStop:'■ 停止', historyTitle:'の出現間隔（直近', historyTitleSuffix:'回）', historyAvg:'平均間隔:', historyLast:'最後:', historyLastUnit:'回目', historyAvgRecent:'直近平均:', historyAvgTotal:'総平均:', historyExpected:'期待回数:', historyTotalCount:'総出現:', historyStddev:'標準偏差:', historyZscore:'Z値:', historyProbWithin:'|Z|以上:', secData:'データ', btnExport:'📋 データをコピー', btnImport:'📥 データを読み込む', dataCopied:'✓ コピーしました！', dataCopyManual:'長押しでコピーしてください', dataEmpty:'データがありません', dataError:'エラーが発生しました', dataPaste:'データを貼り付けてください', dataInvalid:'無効なデータです', dataLoaded:'✓ 読み込み完了！', btnImportConfirm:'読み込む', pointsHistory:'ポイント履歴', pointsClearAll:'全消し', pointsRarity:'レア度', pointsTotal:'TOTAL', pointsAgo:'回ぶり！', pointsStreak:'連続！', pointsEffectLabel:'ポイント演出', pointsDeleteConfirm:'削除しますか？', shareAgo:(n,k)=>`GeoMinaryで${n}が${k}回ぶり！`, shareStreak:(n,k)=>`GeoMinaryで${n}が${k}連続！`, shareProb:(n,p)=>`GeoMinaryで${n}が出た！P=1/${p}`, theaterExitConfirm:'シアターモードを終了しますか？' },
+  en: { flag:'🇺🇸', name:'English', themeNames:['Cyber','Wabi','Minimal','Neon','Cafe','Kawaii','Yasuragi','Fantasy'], tabCount:'Count', tabStreak:'Streak', scaleLabels:['Count','log₂','Norm'], prob:' probability: ', resetTitle:'Select mode to reset', resetRandom:'Normal mode (random)', resetBinary:'Binary mode', resetCancel:'Cancel', secTheme:'Theme', secDisplay:'Scale', secLang:'Language', secAppearance:'Display', labelTheater:'Theater mode', labelEffects:'Effects', scaleBtnLabels:['Count (normal)', 'log₂(Count)', 'log₂(Count/total) / (-n)'], fire:'Fire🔥', lastAt:'Last:', lastUnit:'', lastNone:'No record', normal:'×1', replayFrom:'▶ Replay from here', replayStop:'■ Stop', historyTitle:'Interval for', historyTitleSuffix:'recent)', historyAvg:'Avg interval:', historyLast:'Last:', historyLastUnit:'', historyAvgRecent:'Recent avg:', historyAvgTotal:'Total avg:', historyExpected:'Expected:', historyTotalCount:'Total count:', historyStddev:'Std dev:', historyZscore:'Z-score:', historyProbWithin:'Beyond |Z|:', secData:'Data', btnExport:'📋 Copy Data', btnImport:'📥 Load Data', dataCopied:'✓ Copied!', dataCopyManual:'Long-press to copy', dataEmpty:'No data', dataError:'Error occurred', dataPaste:'Paste data here', dataInvalid:'Invalid data', dataLoaded:'✓ Loaded!', btnImportConfirm:'Load', pointsHistory:'Point History', pointsClearAll:'Clear All', pointsRarity:'Rarity', pointsTotal:'TOTAL', pointsAgo:' turns back!', pointsStreak:'x streak!', pointsEffectLabel:'Point Effects', pointsDeleteConfirm:'Delete this entry?', shareAgo:(n,k)=>`GeoMinary: ${n} after ${k} turns!`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} streak!`, shareProb:(n,p)=>`GeoMinary: ${n} appeared! P=1/${p}`, theaterExitConfirm:'Exit theater mode?' },
+  zhCN: { flag:'🇨🇳', name:'中文(简体)', themeNames:['赛博','和风','极简','霓虹','咖啡','可爱','静谧','幻想'], tabCount:'出现次数', tabStreak:'连续记录', scaleLabels:['次数','log₂','标准化'], prob:' 概率：', resetTitle:'选择模式并重置', resetRandom:'普通模式（随机）', resetBinary:'二进制模式', resetCancel:'取消', secTheme:'主题', secDisplay:'显示比例', secLang:'语言', secAppearance:'显示设置', labelTheater:'剧院模式', labelEffects:'演出效果', scaleBtnLabels:['次数（普通）', 'log₂(次数)', 'log₂(次数/总计) / (-n)'], fire:'触发🔥', lastAt:'最后:', lastUnit:'次', lastNone:'无记录', normal:'×1', replayFrom:'▶ 从此处重放', replayStop:'■ 停止', secData:'数据', historyTitle:'的出现间隔（最近', historyTitleSuffix:'次）', historyAvg:'平均间隔:', historyLast:'最后:', historyLastUnit:'次', historyAvgRecent:'近期平均:', historyAvgTotal:'总平均:', historyExpected:'期望次数:', historyTotalCount:'总出现:', historyStddev:'标准差:', historyZscore:'Z值:', historyProbWithin:'|Z|外:', btnExport:'📋 复制数据', btnImport:'📥 读取数据', dataCopied:'✓ 已复制！', dataCopyManual:'长按复制', dataEmpty:'没有数据', dataError:'发生错误', dataPaste:'请粘贴数据', dataInvalid:'无效数据', dataLoaded:'✓ 读取完成！', btnImportConfirm:'读取', pointsHistory:'积分历史', pointsClearAll:'全部清除', pointsRarity:'稀有度', pointsTotal:'总计', pointsAgo:'次后！', pointsStreak:'连续！', pointsEffectLabel:'积分演出', pointsDeleteConfirm:'确定删除？', shareAgo:(n,k)=>`GeoMinary中${n}隔了${k}次出现！`, shareStreak:(n,k)=>`GeoMinary中${n}连续${k}次！`, shareProb:(n,p)=>`GeoMinary中${n}出现了！P=1/${p}`, theaterExitConfirm:'退出剧院模式？' },
+  zhTW: { flag:'🇹🇼', name:'中文(繁體)', themeNames:['賽博','和風','極簡','霓虹','咖啡','可愛','靜謐','奇幻'], tabCount:'出現次數', tabStreak:'連續記錄', scaleLabels:['次數','log₂','標準化'], prob:' 概率：', resetTitle:'選擇模式並重置', resetRandom:'普通模式（隨機）', resetBinary:'二進位模式', resetCancel:'取消', secTheme:'主題', secDisplay:'顯示比例', secLang:'語言', secAppearance:'顯示設置', labelTheater:'劇院模式', labelEffects:'演出效果', scaleBtnLabels:['次數（普通）', 'log₂(次數)', 'log₂(次數/總計) / (-n)'], fire:'觸發🔥', lastAt:'最後:', lastUnit:'次', lastNone:'無記錄', normal:'×1', replayFrom:'▶ 從此處重放', replayStop:'■ 停止', secData:'數據', historyTitle:'的出現間隔（最近', historyTitleSuffix:'次）', historyAvg:'平均間隔:', historyLast:'最後:', historyLastUnit:'次', historyAvgRecent:'近期平均:', historyAvgTotal:'總平均:', historyExpected:'期望次數:', historyTotalCount:'總出現:', historyStddev:'標準差:', historyZscore:'Z值:', historyProbWithin:'|Z|外:', btnExport:'📋 複製數據', btnImport:'📥 讀取數據', dataCopied:'✓ 已複製！', dataCopyManual:'長按複製', dataEmpty:'沒有數據', dataError:'發生錯誤', dataPaste:'請貼上數據', dataInvalid:'無效數據', dataLoaded:'✓ 讀取完成！', btnImportConfirm:'讀取', pointsHistory:'積分歷史', pointsClearAll:'全部清除', pointsRarity:'稀有度', pointsTotal:'總計', pointsAgo:'次後！', pointsStreak:'連續！', pointsEffectLabel:'積分演出', pointsDeleteConfirm:'確定刪除？', shareAgo:(n,k)=>`GeoMinary中${n}隔了${k}次出現！`, shareStreak:(n,k)=>`GeoMinary中${n}連續${k}次！`, shareProb:(n,p)=>`GeoMinary中${n}出現了！P=1/${p}`, theaterExitConfirm:'退出劇院模式？' },
+  ko: { flag:'🇰🇷', name:'한국어', themeNames:['사이버','와비','미니멀','네온','카페','귀여운','평온','판타지'], tabCount:'출현 횟수', tabStreak:'연속 기록', scaleLabels:['횟수','log₂','정규화'], prob:' 확률: ', resetTitle:'모드를 선택하여 초기화', resetRandom:'일반 모드 (확률)', resetBinary:'이진수 모드', resetCancel:'취소', secTheme:'테마', secDisplay:'표시 스케일', secLang:'언어', secAppearance:'표시 설정', labelTheater:'시어터 모드', labelEffects:'연출 효과', scaleBtnLabels:['횟수 (보통)', 'log₂(횟수)', 'log₂(횟수/총계) / (-n)'], fire:'점화🔥', lastAt:'마지막:', lastUnit:'번째', lastNone:'기록없음', normal:'×1', replayFrom:'▶ 여기서 재현', replayStop:'■ 정지', historyTitle:'의 출현 간격（최근', historyTitleSuffix:'회）', historyAvg:'평균 간격:', historyLast:'마지막:', historyLastUnit:'번째', historyAvgRecent:'최근 평균:', historyAvgTotal:'전체 평균:', historyExpected:'기대 횟수:', historyTotalCount:'총 출현:', historyStddev:'표준편차:', historyZscore:'Z값:', historyProbWithin:'|Z|이상:', secData:'데이터', btnExport:'📋 데이터 복사', btnImport:'📥 데이터 불러오기', dataCopied:'✓ 복사했습니다！', dataCopyManual:'길게 눌러 복사', dataEmpty:'데이터 없음', dataError:'오류 발생', dataPaste:'데이터를 붙여넣기', dataInvalid:'잘못된 데이터', dataLoaded:'✓ 불러오기 완료！', btnImportConfirm:'불러오기', pointsHistory:'포인트 기록', pointsClearAll:'전체 삭제', pointsRarity:'희귀도', pointsTotal:'총계', pointsAgo:'번째 등장！', pointsStreak:'연속！', pointsEffectLabel:'포인트 연출', pointsDeleteConfirm:'삭제하시겠습니까？', shareAgo:(n,k)=>`GeoMinary에서 ${n}이 ${k}번 만에 등장！`, shareStreak:(n,k)=>`GeoMinary에서 ${n}이 ${k}연속！`, shareProb:(n,p)=>`GeoMinary에서 ${n} 등장！P=1/${p}`, theaterExitConfirm:'시어터 모드를 종료하시겠습니까？' },
+  es: { flag:'🇪🇸', name:'Español', themeNames:['Ciber','Wabi','Minimal','Neón','Café','Kawaii','Sereno','Fantasía'], tabCount:'Conteo', tabStreak:'Racha', scaleLabels:['Conteo','log₂','Norm'], prob:' probabilidad: ', resetTitle:'Seleccionar modo', resetRandom:'Modo normal', resetBinary:'Modo binario', resetCancel:'Cancelar', secTheme:'Tema', secDisplay:'Escala', secLang:'Idioma', secAppearance:'Visualización', labelTheater:'Modo teatro', labelEffects:'Efectos', scaleBtnLabels:['Conteo (normal)', 'log₂(Conteo)', 'log₂(Conteo/total) / (-n)'], fire:'Lanzar🔥', lastAt:'Última:', lastUnit:'ª', lastNone:'Sin registro', normal:'×1', replayFrom:'▶ Reproducir desde aquí', replayStop:'■ Parar', secData:'Datos', historyTitle:'Intervalo de', historyTitleSuffix:'recientes)', historyAvg:'Intervalo medio:', historyLast:'Último:', historyLastUnit:'', historyAvgRecent:'Prom. reciente:', historyAvgTotal:'Prom. total:', historyExpected:'Esperado:', historyTotalCount:'Total:', historyStddev:'Desv. est.:', historyZscore:'Puntuación Z:', historyProbWithin:'Fuera |Z|:', btnExport:'📋 Copiar datos', btnImport:'📥 Cargar datos', dataCopied:'✓ Copiado！', dataCopyManual:'Mantén pulsado para copiar', dataEmpty:'Sin datos', dataError:'Error', dataPaste:'Pega los datos aquí', dataInvalid:'Datos inválidos', dataLoaded:'✓ Cargado！', btnImportConfirm:'Cargar', pointsHistory:'Historial', pointsClearAll:'Borrar todo', pointsRarity:'Rareza', pointsTotal:'TOTAL', pointsAgo:'tras ausencia！', pointsStreak:'racha！', pointsEffectLabel:'Efectos de puntos', pointsDeleteConfirm:'¿Eliminar este registro?', shareAgo:(n,k)=>`GeoMinary: ${n} apareció tras ${k} turnos！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} racha！`, shareProb:(n,p)=>`GeoMinary: ¡Apareció ${n}！P=1/${p}`, theaterExitConfirm:'¿Salir del modo teatro?' },
+  fr: { flag:'🇫🇷', name:'Français', themeNames:['Cyber','Wabi','Minimal','Néon','Café','Kawaii','Sérénité','Fantaisie'], tabCount:'Comptage', tabStreak:'Série', scaleLabels:['Comptage','log₂','Norm'], prob:' probabilité: ', resetTitle:'Choisir le mode', resetRandom:'Mode normal', resetBinary:'Mode binaire', resetCancel:'Annuler', secTheme:'Thème', secDisplay:'Échelle', secLang:'Langue', secAppearance:'Affichage', labelTheater:'Mode théâtre', labelEffects:'Effets', scaleBtnLabels:['Comptage (normal)', 'log₂(Comptage)', 'log₂(Comptage/total) / (-n)'], fire:'Lancer🔥', lastAt:'Dernier:', lastUnit:'e', lastNone:'Aucun', normal:'×1', replayFrom:'▶ Rejouer depuis ici', replayStop:'■ Arrêter', historyTitle:'Intervalle de', historyTitleSuffix:'récents)', historyAvg:'Intervalle moy.:', historyLast:'Dernier:', historyLastUnit:'', historyAvgRecent:'Moy. récente:', historyAvgTotal:'Moy. totale:', historyExpected:'Attendu:', historyTotalCount:'Total:', historyStddev:'Écart-type:', historyZscore:'Score Z:', historyProbWithin:'Hors |Z|:', secData:'Données', btnExport:'📋 Copier données', btnImport:'📥 Charger données', dataCopied:'✓ Copié！', dataCopyManual:'Appui long pour copier', dataEmpty:'Pas de données', dataError:'Erreur', dataPaste:'Collez les données ici', dataInvalid:'Données invalides', dataLoaded:'✓ Chargé！', btnImportConfirm:'Charger', pointsHistory:'Historique', pointsClearAll:'Tout effacer', pointsRarity:'Rareté', pointsTotal:'TOTAL', pointsAgo:'tours après！', pointsStreak:'en série！', pointsEffectLabel:'Effets de points', pointsDeleteConfirm:'Supprimer cette entrée ?', shareAgo:(n,k)=>`GeoMinary: ${n} après ${k} tours！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} série！`, shareProb:(n,p)=>`GeoMinary: ${n} est apparu！P=1/${p}`, theaterExitConfirm:'Quitter le mode théâtre ?' },
+  pt: { flag:'🇧🇷', name:'Português', themeNames:['Cyber','Wabi','Minimal','Neon','Café','Kawaii','Serenidade','Fantasia'], tabCount:'Contagem', tabStreak:'Sequência', scaleLabels:['Contagem','log₂','Norm'], prob:' probabilidade: ', resetTitle:'Selecionar modo', resetRandom:'Modo normal', resetBinary:'Modo binário', resetCancel:'Cancelar', secTheme:'Tema', secDisplay:'Escala', secLang:'Idioma', secAppearance:'Exibição', labelTheater:'Modo teatro', labelEffects:'Efeitos', scaleBtnLabels:['Contagem (normal)', 'log₂(Contagem)', 'log₂(Contagem/total) / (-n)'], fire:'Disparar🔥', lastAt:'Última:', lastUnit:'ª', lastNone:'Sem registro', normal:'×1', replayFrom:'▶ Reproduzir daqui', replayStop:'■ Parar', secData:'Dados', historyTitle:'Intervalo de', historyTitleSuffix:'recentes)', historyAvg:'Intervalo médio:', historyLast:'Último:', historyLastUnit:'', historyAvgRecent:'Méd. recente:', historyAvgTotal:'Méd. total:', historyExpected:'Esperado:', historyTotalCount:'Total:', historyStddev:'Desvio pad.:', historyZscore:'Pontuação Z:', historyProbWithin:'Fora |Z|:', btnExport:'📋 Copiar dados', btnImport:'📥 Carregar dados', dataCopied:'✓ Copiado！', dataCopyManual:'Pressione para copiar', dataEmpty:'Sem dados', dataError:'Erro', dataPaste:'Cole os dados aqui', dataInvalid:'Dados inválidos', dataLoaded:'✓ Carregado！', btnImportConfirm:'Carregar', pointsHistory:'Histórico', pointsClearAll:'Limpar tudo', pointsRarity:'Raridade', pointsTotal:'TOTAL', pointsAgo:'turnos depois！', pointsStreak:'seguidos！', pointsEffectLabel:'Efeitos de pontos', pointsDeleteConfirm:'Excluir este registro?', shareAgo:(n,k)=>`GeoMinary: ${n} após ${k} turnos！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} seguidos！`, shareProb:(n,p)=>`GeoMinary: ${n} apareceu！P=1/${p}`, theaterExitConfirm:'Sair do modo teatro?' },
+  ru: { flag:'🇷🇺', name:'Русский', themeNames:['Кибер','Ваби','Минимал','Неон','Кафе','Каваии','Покой','Фэнтези'], tabCount:'Количество', tabStreak:'Серия', scaleLabels:['Счёт','log₂','Норм'], prob:' вероятность: ', resetTitle:'Выберите режим', resetRandom:'Обычный режим', resetBinary:'Двоичный режим', resetCancel:'Отмена', secTheme:'Тема', secDisplay:'Масштаб', secLang:'Язык', secAppearance:'Вид', labelTheater:'Режим театра', labelEffects:'Эффекты', scaleBtnLabels:['Счёт (обычный)', 'log₂(Счёт)', 'log₂(Счёт/всего) / (-n)'], fire:'Огонь🔥', lastAt:'Последний:', lastUnit:'-й', lastNone:'Нет записи', normal:'×1', replayFrom:'▶ Воспроизвести отсюда', replayStop:'■ Стоп', secData:'Данные', historyTitle:'Интервалы для ', historyTitleSuffix:' (посл.)', historyAvg:'Ср. интервал:', historyLast:'Последний:', historyLastUnit:'-й', historyAvgRecent:'Ср. посл.:', historyAvgTotal:'Ср. всего:', historyExpected:'Ожидаемо:', historyTotalCount:'Всего:', historyStddev:'Ст. откл.:', historyZscore:'Z-оценка:', historyProbWithin:'|Z| и выше:', btnExport:'📋 Копировать', btnImport:'📥 Загрузить', dataCopied:'✓ Скопировано!', dataCopyManual:'Удерживайте для копирования', dataEmpty:'Нет данных', dataError:'Ошибка', dataPaste:'Вставьте данные', dataInvalid:'Неверные данные', dataLoaded:'✓ Загружено!', btnImportConfirm:'Загрузить', pointsHistory:'История очков', pointsClearAll:'Очистить всё', pointsRarity:'Редкость', pointsTotal:'ИТОГО', pointsAgo:' раз спустя！', pointsStreak:'подряд！', pointsEffectLabel:'Эффекты очков', pointsDeleteConfirm:'Удалить запись?', shareAgo:(n,k)=>`GeoMinary: ${n} через ${k} ходов！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} подряд！`, shareProb:(n,p)=>`GeoMinary: выпало ${n}！P=1/${p}`, theaterExitConfirm:'Выйти из режима театра?' },
+  de: { flag:'🇩🇪', name:'Deutsch', themeNames:['Cyber','Wabi','Minimal','Neon','Café','Kawaii','Stille','Fantasie'], tabCount:'Anzahl', tabStreak:'Serie', scaleLabels:['Anzahl','log₂','Norm'], prob:' Wahrsch.: ', resetTitle:'Modus wählen', resetRandom:'Normalmodus', resetBinary:'Binärmodus', resetCancel:'Abbrechen', secTheme:'Thema', secDisplay:'Skala', secLang:'Sprache', secAppearance:'Anzeige', labelTheater:'Theatermodus', labelEffects:'Effekte', scaleBtnLabels:['Anzahl (normal)', 'log₂(Anzahl)', 'log₂(Anzahl/gesamt) / (-n)'], fire:'Feuer🔥', lastAt:'Letztes:', lastUnit:'.', lastNone:'Kein Eintrag', normal:'×1', replayFrom:'▶ Von hier abspielen', replayStop:'■ Stopp', secData:'Daten', historyTitle:'Intervalle für ', historyTitleSuffix:' (letzt.)', historyAvg:'Ø Intervall:', historyLast:'Letztes:', historyLastUnit:'.', historyAvgRecent:'Akt. Ø:', historyAvgTotal:'Ges. Ø:', historyExpected:'Erwartet:', historyTotalCount:'Gesamt:', historyStddev:'Std.abw.:', historyZscore:'Z-Wert:', historyProbWithin:'|Z| u. mehr:', btnExport:'📋 Daten kopieren', btnImport:'📥 Daten laden', dataCopied:'✓ Kopiert!', dataCopyManual:'Gedrückt halten', dataEmpty:'Keine Daten', dataError:'Fehler', dataPaste:'Daten einfügen', dataInvalid:'Ungültige Daten', dataLoaded:'✓ Geladen!', btnImportConfirm:'Laden', pointsHistory:'Punkteverlauf', pointsClearAll:'Alle löschen', pointsRarity:'Seltenheit', pointsTotal:'GESAMT', pointsAgo:' mal später！', pointsStreak:'mal hintereinander！', pointsEffectLabel:'Punkteeffekte', pointsDeleteConfirm:'Eintrag löschen?', shareAgo:(n,k)=>`GeoMinary: ${n} nach ${k} Runden！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} Serie！`, shareProb:(n,p)=>`GeoMinary: ${n} erschienen！P=1/${p}`, theaterExitConfirm:'Theatermodus beenden?' },
 };
 let currentLang = LANGS.ja;
 let currentLangKey = 'ja';
@@ -2085,6 +2162,99 @@ const theaterShowEls = () => {
 
 let logoHidden = false;
 
+// ── シアターモード：bigNumber位置調整 ──
+let bigNumOffsetY = 0;
+let theaterMoveTimer = null;
+const STEP_PX = Math.round(window.innerHeight * 0.10);
+
+function showTheaterCtrl() {
+  const ctrl = document.getElementById('theaterMoveCtrl');
+  ctrl.classList.add('visible');
+  resetMoveTimer();
+}
+
+function hideTheaterCtrl() {
+  document.getElementById('theaterMoveCtrl').classList.remove('visible');
+  if (theaterMoveTimer) { clearTimeout(theaterMoveTimer); theaterMoveTimer = null; }
+}
+
+function resetMoveTimer() {
+  if (theaterMoveTimer) clearTimeout(theaterMoveTimer);
+  theaterMoveTimer = setTimeout(hideTheaterCtrl, 3000);
+}
+
+const THEATER_POS_KEY = 'geominary_theater_pos';
+
+function applyBigNumOffset(y, save = true) {
+  const maxY = window.innerHeight * 0.35;
+  bigNumOffsetY = Math.max(-maxY, Math.min(maxY, y));
+  document.querySelector('.stage').style.top = bigNumOffsetY + 'px';
+  if (save) {
+    try { localStorage.setItem(THEATER_POS_KEY, bigNumOffsetY); } catch(e) {}
+  }
+}
+
+// bigNumberタップ → コントロール表示（シアター解除させない）
+document.getElementById('bigNumber').addEventListener('touchstart', (e) => {
+  if (!isTheater) return;
+  e.stopPropagation();
+}, { passive: true });
+
+document.getElementById('bigNumber').addEventListener('touchend', (e) => {
+  if (!isTheater) return;
+  e.stopPropagation();
+  // ドラッグではなくタップのみコントロール表示
+  if (!_bnDragging) showTheaterCtrl();
+  _bnDragging = false;
+});
+
+// ドラッグ処理
+let _bnDragStartY = 0;
+let _bnDragStartOffset = 0;
+let _bnDragging = false;
+
+document.getElementById('bigNumber').addEventListener('touchmove', (e) => {
+  if (!isTheater) return;
+  e.stopPropagation();
+  e.preventDefault();
+  _bnDragging = true;
+  const dy = e.touches[0].clientY - _bnDragStartY;
+  applyBigNumOffset(_bnDragStartOffset + dy);
+  resetMoveTimer();
+  // ドラッグ中はコントロール表示
+  showTheaterCtrl();
+}, { passive: false });
+
+document.getElementById('bigNumber').addEventListener('touchstart', (e) => {
+  if (!isTheater) return;
+  _bnDragStartY = e.touches[0].clientY;
+  _bnDragStartOffset = bigNumOffsetY;
+  _bnDragging = false;
+}, { passive: true });
+
+// 上下ボタン
+document.getElementById('theaterMoveUp').addEventListener('click', (e) => {
+  e.stopPropagation();
+  applyBigNumOffset(bigNumOffsetY - STEP_PX);
+  showTheaterCtrl();
+});
+document.getElementById('theaterMoveDown').addEventListener('click', (e) => {
+  e.stopPropagation();
+  applyBigNumOffset(bigNumOffsetY + STEP_PX);
+  showTheaterCtrl();
+});
+document.getElementById('theaterResetPos').addEventListener('click', (e) => {
+  e.stopPropagation();
+  applyBigNumOffset(0);
+  try { localStorage.removeItem(THEATER_POS_KEY); } catch(e) {}
+  showTheaterCtrl();
+});
+
+// theaterMoveCtrl自体のtouchstartもシアター解除させない
+document.getElementById('theaterMoveCtrl').addEventListener('touchstart', (e) => {
+  e.stopPropagation();
+}, { passive: true });
+
 document.getElementById('theaterBtn').addEventListener('touchstart', (e) => {
   e.stopPropagation(); e.preventDefault();
   isTheater = true;
@@ -2092,6 +2262,11 @@ document.getElementById('theaterBtn').addEventListener('touchstart', (e) => {
   document.getElementById('theaterBtn').style.borderColor = 'var(--accent)';
   theaterHideEls();
   closeDrawer();
+  // 保存済みの位置を復元
+  try {
+    const savedPos = localStorage.getItem(THEATER_POS_KEY);
+    if (savedPos !== null) applyBigNumOffset(parseFloat(savedPos), false);
+  } catch(e) {}
 });
 
 // ロゴタップ → ロゴ消す
@@ -2104,16 +2279,51 @@ document.getElementById('bgLogo').addEventListener('touchstart', (e) => {
   bgLogo.classList.remove('logo-tappable');
 });
 
-document.addEventListener('touchstart', (e) => {
-  if (!isTheater) return;
-  if (e.target.closest('#theaterBtn')) return;
-  if (e.target.closest('#bgLogo')) return;
-  // ロゴ以外タップ → シアター解除
+// カスタム確認ダイアログ
+function showTheaterExitDialog(onOk) {
+  const dlg = document.getElementById('theaterExitDialog');
+  document.getElementById('dlgExitMsg').textContent =
+    currentLang.theaterExitConfirm || 'シアターモードを終了しますか？';
+  dlg.classList.add('visible');
+  const ok = document.getElementById('dlgExitOk');
+  const cancel = document.getElementById('dlgExitCancel');
+  function cleanup() {
+    dlg.classList.remove('visible');
+    ok.removeEventListener('click', onClickOk);
+    cancel.removeEventListener('click', onClickCancel);
+  }
+  function onClickOk() { cleanup(); onOk(); }
+  function onClickCancel() { cleanup(); }
+  ok.addEventListener('click', onClickOk);
+  cancel.addEventListener('click', onClickCancel);
+}
+
+function exitTheater() {
   isTheater = false;
   logoHidden = false;
   document.getElementById('theaterBtn').style.borderColor = '';
   theaterShowEls();
-}, { passive: true });
+  hideTheaterCtrl();
+  applyBigNumOffset(0, false);
+  document.querySelector('.stage').style.top = '0px';
+}
+
+document.addEventListener('touchend', (e) => {
+  if (!isTheater) return;
+  if (e.target.closest('#theaterBtn')) return;
+  if (e.target.closest('#bgLogo')) return;
+  if (e.target.closest('#theaterMoveCtrl')) return;
+  if (e.target.closest('#bigNumber')) return;
+  if (e.target.closest('#theaterExitDialog')) return;
+  // コントロールが出てるなら消すだけ
+  const ctrl = document.getElementById('theaterMoveCtrl');
+  if (ctrl.classList.contains('visible')) {
+    hideTheaterCtrl();
+    return;
+  }
+  // カスタムダイアログで確認
+  showTheaterExitDialog(exitTheater);
+});
 
 document.getElementById('toggleEffects').addEventListener('click', () => {
   effectsEnabled = !effectsEnabled;
@@ -2250,7 +2460,7 @@ document.addEventListener('touchmove', onBarTouchMove, { passive: true });
 // ── ポイント ──
 let points = 0;
 let pointsHistory = [];
-let pointsEffectEnabled = true;
+let pointsEffectEnabled = false;
 let pointsEffectTimer = null;
 const POINTS_KEY = 'geominary_points';
 const POINTS_FAV_KEY = 'geominary_points_fav';
@@ -2479,6 +2689,7 @@ function renderPointsPanel() {
     item.querySelector('.pts-del').addEventListener('click', (e) => {
       e.stopPropagation();
       if (rec.favId !== undefined) return;
+      if (!confirm(currentLang.pointsDeleteConfirm || '削除しますか？')) return;
       const idx = pointsHistory.length - 1 - i;
       pointsHistory.splice(idx, 1);
       savePoints();
@@ -2696,6 +2907,8 @@ if (loadState()) {
   document.getElementById('totalCount').textContent = total;
   document.getElementById('maxSeen').textContent = maxSeen || '—';
 }
+
+// シアターモード位置はシアター開始時に復元するため、起動時は適用しない
 
 // インターバル開始
 setTimeout(() => {
