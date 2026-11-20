@@ -455,8 +455,58 @@
   }
   #pauseBtn:hover { border-color: var(--accent); background: var(--dim); }
   #pauseBtn.paused { border-color: var(--accent); }
+  #screenshotBtn {
+    position: fixed;
+    bottom: 28px; right: 64px;
+    z-index: 300;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--mid);
+    background: rgba(8,10,16,0.85);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  #screenshotBtn:hover { border-color: var(--accent); background: var(--dim); }
+  #screenshotOverlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 400;
+    background: rgba(0,0,0,0.9);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  #screenshotOverlay.visible { display: flex; }
+  #screenshotOverlay img {
+    max-width: 92vw;
+    max-height: 75vh;
+    border-radius: 8px;
+  }
+  #screenshotOverlay p {
+    color: #aaa; font-size: 13px; margin: 0;
+  }
+  #screenshotOverlayClose {
+    padding: 10px 32px;
+    border: 1px solid var(--mid);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--fg);
+    font-size: 14px;
+    cursor: pointer;
+  }
 
   /* ── ポイント演出 ── */
+  #foreshadow {
+    position: fixed; top: 19%; left: 50%; transform: translateX(-50%);
+    font-family: var(--ui-font); letter-spacing: 0.15em; pointer-events: none;
+    opacity: 0; z-index: 9998; white-space: nowrap; text-align: center;
+  }
+  @keyframes foreshadowAnim {
+    0% { opacity: 0; } 15% { opacity: 1; } 35% { opacity: 0.45; } 55% { opacity: 1; } 75% { opacity: 0.5; } 90% { opacity: 0.9; } 100% { opacity: 0; }
+  }
   #pointsEffect {
     position: fixed;
     top: 10%;
@@ -699,10 +749,16 @@
   /* ── スプラッシュ ── */
 
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
 <canvas id="fxCanvas"></canvas>
+<div id="screenshotOverlay">
+  <img id="screenshotImg" src="" alt="screenshot">
+  <p id="screenshotHint">長押しで写真に保存</p>
+  <button id="screenshotOverlayClose">閉じる</button>
+</div>
 <div id="flashOverlay"></div>
 <div id="theaterMoveCtrl">
   <button id="theaterMoveUp">▲</button>
@@ -738,6 +794,7 @@
   </button>
 </div>
 
+<button id="screenshotBtn" aria-label="スクリーンショット">📷</button>
 <button id="pauseBtn" aria-label="一時停止">⏸</button>
 
 <!-- ポイント履歴パネル -->
@@ -819,6 +876,58 @@
         display:block;transform:translateX(0);
       "></span></button>
     </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+      <span style="font-size:12px;letter-spacing:0.1em;color:#e8f4f8;opacity:0.7;" id="labelSE">効果音</span>
+      <button id="toggleSE" style="
+        width:40px;height:22px;border-radius:11px;border:none;cursor:pointer;
+        background:var(--mid);position:relative;flex-shrink:0;transition:background 0.2s;
+      "><span style="
+        position:absolute;top:3px;left:3px;width:16px;height:16px;
+        border-radius:50%;background:#fff;transition:transform 0.2s;
+        display:block;transform:translateX(0);
+      "></span></button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+      <span style="font-size:12px;letter-spacing:0.1em;color:#e8f4f8;opacity:0.7;" id="labelTickSE">数字音</span>
+      <button id="toggleTickSE" style="
+        width:40px;height:22px;border-radius:11px;border:none;cursor:pointer;
+        background:var(--mid);position:relative;flex-shrink:0;transition:background 0.2s;
+      "><span style="
+        position:absolute;top:3px;left:3px;width:16px;height:16px;
+        border-radius:50%;background:#fff;transition:transform 0.2s;
+        display:block;transform:translateX(0);
+      "></span></button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+      <span style="font-size:12px;letter-spacing:0.1em;color:#e8f4f8;opacity:0.7;" id="labelBGM">BGM</span>
+      <button id="toggleBGM" style="
+        width:40px;height:22px;border-radius:11px;border:none;cursor:pointer;
+        background:var(--mid);position:relative;flex-shrink:0;transition:background 0.2s;
+      "><span style="
+        position:absolute;top:3px;left:3px;width:16px;height:16px;
+        border-radius:50%;background:#fff;transition:transform 0.2s;
+        display:block;transform:translateX(0);
+      "></span></button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+      <span style="font-size:12px;letter-spacing:0.1em;color:#e8f4f8;opacity:0.7;" id="labelPreview">予告演出</span>
+      <button id="togglePreview" style="
+        width:40px;height:22px;border-radius:11px;border:none;cursor:pointer;
+        background:var(--mid);position:relative;flex-shrink:0;transition:background 0.2s;
+      "><span style="
+        position:absolute;top:3px;left:3px;width:16px;height:16px;
+        border-radius:50%;background:#fff;transition:transform 0.2s;
+        display:block;transform:translateX(0);
+      "></span></button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;gap:12px;">
+      <span style="font-size:12px;letter-spacing:0.1em;color:#e8f4f8;opacity:0.7;" id="labelSEVol">効果音の音量</span>
+      <input type="range" id="seVolume" min="0" max="100" value="50" style="flex:1;max-width:140px;accent-color:var(--accent);">
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;gap:12px;">
+      <span style="font-size:12px;letter-spacing:0.1em;color:#e8f4f8;opacity:0.7;" id="labelBGMVol">BGMの音量</span>
+      <input type="range" id="bgmVolume" min="0" max="100" value="50" style="flex:1;max-width:140px;accent-color:var(--accent);">
+    </div>
   </div>
 
   <div>
@@ -865,7 +974,13 @@
                color:#ffc800;font-size:14px;padding:6px 8px;text-align:center;outline:none;">
       <button class="debug-btn" id="btnFireNum" style="flex:1;">発火🔥</button>
     </div>
-    <div class="debug-row" style="margin-top:6px;flex-wrap:wrap;gap:4px;">
+    <div class="debug-row" style="margin-top:10px;gap:8px;">
+      <input id="debugSeqInput" type="text" placeholder="例: 13,13,14,1,14"
+        style="flex:1;background:transparent;border:1px solid rgba(255,200,0,0.5);border-radius:4px;
+               color:#ffc800;font-size:12px;padding:6px 8px;outline:none;">
+      <button class="debug-btn" id="btnFireSeq" style="flex:1;">連続発火🔥</button>
+    </div>
+    <div id="debugNumGrid" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;"></div>
       <button class="debug-btn" id="btnAdd1k">+1K</button>
       <button class="debug-btn" id="btnAdd10k">+10K</button>
       <button class="debug-btn" id="btnAdd100k">+100K</button>
@@ -887,6 +1002,7 @@
     <div id="probLabel"></div>
     <div id="modeLabel" style="display:none;position:absolute;bottom:12px;right:12px;font-size:11px;font-weight:bold;letter-spacing:0.1em;color:var(--bg);background:var(--accent);opacity:0.85;padding:3px 10px;border-radius:12px;"></div>
     <div id="pointsEffect"></div>
+    <div id="foreshadow"></div>
     <!-- 背景ロゴ -->
     <div id="bgLogo">
       <svg width="200" height="56" viewBox="0 0 200 56">
@@ -1069,6 +1185,7 @@ let currentTheme = THEMES[0];
 function applyTheme(theme) {
   saveState();
   currentTheme = theme;
+  try { if (bgmEnabled) startBGM(); } catch(e) {} // テーマ変更でBGMも切り替え
   const root = document.documentElement;
   for (const [k,v] of Object.entries(theme.vars)) root.style.setProperty(k, v);
   document.body.style.background = theme.bodyBg;
@@ -1102,19 +1219,34 @@ THEMES.forEach(t => {
 // 言語システム
 // ────────────────────────────────
 const LANGS = {
-  ja: { flag:'🇯🇵', name:'日本語', themeNames:['サイバー','和風','ミニマル','ネオン','カフェ','かわいい','やすらぎ','ファンタジー'], tabCount:'出現回数', tabStreak:'連続記録', scaleLabels:['回数','log₂','正規化'], prob:' の確率：', resetTitle:'モードを選んでリセット', resetRandom:'通常モード（確率）', resetBinary:'2進数モード', resetCancel:'キャンセル', secTheme:'テーマ', secDisplay:'表示スケール', secLang:'言語', secAppearance:'表示設定', labelTheater:'シアターモード', labelEffects:'演出エフェクト', scaleBtnLabels:['回数（通常）', 'log₂(回数)', 'log₂(回数/total) / (-n)'], fire:'発火🔥', lastAt:'最後:', lastUnit:'回目', lastNone:'記録なし', normal:'×1', replayFrom:'▶ ここから再現', replayStop:'■ 停止', historyTitle:'の出現間隔（直近', historyTitleSuffix:'回）', historyAvg:'平均間隔:', historyLast:'最後:', historyLastUnit:'回目', historyAvgRecent:'直近平均:', historyAvgTotal:'総平均:', historyExpected:'期待回数:', historyTotalCount:'総出現:', historyStddev:'標準偏差:', historyZscore:'Z値:', historyProbWithin:'|Z|以上:', secData:'データ', btnExport:'📋 データをコピー', btnImport:'📥 データを読み込む', dataCopied:'✓ コピーしました！', dataCopyManual:'長押しでコピーしてください', dataEmpty:'データがありません', dataError:'エラーが発生しました', dataPaste:'データを貼り付けてください', dataInvalid:'無効なデータです', dataLoaded:'✓ 読み込み完了！', btnImportConfirm:'読み込む', pointsHistory:'ポイント履歴', pointsClearAll:'全消し', pointsRarity:'レア度', pointsTotal:'TOTAL', pointsAgo:'回ぶり！', pointsStreak:'連続！', pointsEffectLabel:'ポイント演出', pointsDeleteConfirm:'削除しますか？', pointsClearConfirm:'ポイント履歴を全消しします。よろしいですか？', shareAgo:(n,k)=>`GeoMinaryで${n}が${k}回ぶり！`, shareStreak:(n,k)=>`GeoMinaryで${n}が${k}連続！`, shareProb:(n,p)=>`GeoMinaryで${n}が出た！P=1/${p}`, theaterExitConfirm:'シアターモードを終了しますか？' },
-  en: { flag:'🇺🇸', name:'English', themeNames:['Cyber','Wabi','Minimal','Neon','Cafe','Kawaii','Yasuragi','Fantasy'], tabCount:'Count', tabStreak:'Streak', scaleLabels:['Count','log₂','Norm'], prob:' probability: ', resetTitle:'Select mode to reset', resetRandom:'Normal mode (random)', resetBinary:'Binary mode', resetCancel:'Cancel', secTheme:'Theme', secDisplay:'Scale', secLang:'Language', secAppearance:'Display', labelTheater:'Theater mode', labelEffects:'Effects', scaleBtnLabels:['Count (normal)', 'log₂(Count)', 'log₂(Count/total) / (-n)'], fire:'Fire🔥', lastAt:'Last:', lastUnit:'', lastNone:'No record', normal:'×1', replayFrom:'▶ Replay from here', replayStop:'■ Stop', historyTitle:'Interval for', historyTitleSuffix:'recent)', historyAvg:'Avg interval:', historyLast:'Last:', historyLastUnit:'', historyAvgRecent:'Recent avg:', historyAvgTotal:'Total avg:', historyExpected:'Expected:', historyTotalCount:'Total count:', historyStddev:'Std dev:', historyZscore:'Z-score:', historyProbWithin:'Beyond |Z|:', secData:'Data', btnExport:'📋 Copy Data', btnImport:'📥 Load Data', dataCopied:'✓ Copied!', dataCopyManual:'Long-press to copy', dataEmpty:'No data', dataError:'Error occurred', dataPaste:'Paste data here', dataInvalid:'Invalid data', dataLoaded:'✓ Loaded!', btnImportConfirm:'Load', pointsHistory:'Point History', pointsClearAll:'Clear All', pointsRarity:'Rarity', pointsTotal:'TOTAL', pointsAgo:' turns back!', pointsStreak:'x streak!', pointsEffectLabel:'Point Effects', pointsDeleteConfirm:'Delete this entry?', pointsClearConfirm:'Clear all point history?', shareAgo:(n,k)=>`GeoMinary: ${n} after ${k} turns!`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} streak!`, shareProb:(n,p)=>`GeoMinary: ${n} appeared! P=1/${p}`, theaterExitConfirm:'Exit theater mode?' },
-  zhCN: { flag:'🇨🇳', name:'中文(简体)', themeNames:['赛博','和风','极简','霓虹','咖啡','可爱','静谧','幻想'], tabCount:'出现次数', tabStreak:'连续记录', scaleLabels:['次数','log₂','标准化'], prob:' 概率：', resetTitle:'选择模式并重置', resetRandom:'普通模式（随机）', resetBinary:'二进制模式', resetCancel:'取消', secTheme:'主题', secDisplay:'显示比例', secLang:'语言', secAppearance:'显示设置', labelTheater:'剧院模式', labelEffects:'演出效果', scaleBtnLabels:['次数（普通）', 'log₂(次数)', 'log₂(次数/总计) / (-n)'], fire:'触发🔥', lastAt:'最后:', lastUnit:'次', lastNone:'无记录', normal:'×1', replayFrom:'▶ 从此处重放', replayStop:'■ 停止', secData:'数据', historyTitle:'的出现间隔（最近', historyTitleSuffix:'次）', historyAvg:'平均间隔:', historyLast:'最后:', historyLastUnit:'次', historyAvgRecent:'近期平均:', historyAvgTotal:'总平均:', historyExpected:'期望次数:', historyTotalCount:'总出现:', historyStddev:'标准差:', historyZscore:'Z值:', historyProbWithin:'|Z|外:', btnExport:'📋 复制数据', btnImport:'📥 读取数据', dataCopied:'✓ 已复制！', dataCopyManual:'长按复制', dataEmpty:'没有数据', dataError:'发生错误', dataPaste:'请粘贴数据', dataInvalid:'无效数据', dataLoaded:'✓ 读取完成！', btnImportConfirm:'读取', pointsHistory:'积分历史', pointsClearAll:'全部清除', pointsRarity:'稀有度', pointsTotal:'总计', pointsAgo:'次后！', pointsStreak:'连续！', pointsEffectLabel:'积分演出', pointsDeleteConfirm:'确定删除？', pointsClearConfirm:'确定清除所有积分历史？', shareAgo:(n,k)=>`GeoMinary中${n}隔了${k}次出现！`, shareStreak:(n,k)=>`GeoMinary中${n}连续${k}次！`, shareProb:(n,p)=>`GeoMinary中${n}出现了！P=1/${p}`, theaterExitConfirm:'退出剧院模式？' },
-  zhTW: { flag:'🇹🇼', name:'中文(繁體)', themeNames:['賽博','和風','極簡','霓虹','咖啡','可愛','靜謐','奇幻'], tabCount:'出現次數', tabStreak:'連續記錄', scaleLabels:['次數','log₂','標準化'], prob:' 概率：', resetTitle:'選擇模式並重置', resetRandom:'普通模式（隨機）', resetBinary:'二進位模式', resetCancel:'取消', secTheme:'主題', secDisplay:'顯示比例', secLang:'語言', secAppearance:'顯示設置', labelTheater:'劇院模式', labelEffects:'演出效果', scaleBtnLabels:['次數（普通）', 'log₂(次數)', 'log₂(次數/總計) / (-n)'], fire:'觸發🔥', lastAt:'最後:', lastUnit:'次', lastNone:'無記錄', normal:'×1', replayFrom:'▶ 從此處重放', replayStop:'■ 停止', secData:'數據', historyTitle:'的出現間隔（最近', historyTitleSuffix:'次）', historyAvg:'平均間隔:', historyLast:'最後:', historyLastUnit:'次', historyAvgRecent:'近期平均:', historyAvgTotal:'總平均:', historyExpected:'期望次數:', historyTotalCount:'總出現:', historyStddev:'標準差:', historyZscore:'Z值:', historyProbWithin:'|Z|外:', btnExport:'📋 複製數據', btnImport:'📥 讀取數據', dataCopied:'✓ 已複製！', dataCopyManual:'長按複製', dataEmpty:'沒有數據', dataError:'發生錯誤', dataPaste:'請貼上數據', dataInvalid:'無效數據', dataLoaded:'✓ 讀取完成！', btnImportConfirm:'讀取', pointsHistory:'積分歷史', pointsClearAll:'全部清除', pointsRarity:'稀有度', pointsTotal:'總計', pointsAgo:'次後！', pointsStreak:'連續！', pointsEffectLabel:'積分演出', pointsDeleteConfirm:'確定刪除？', pointsClearConfirm:'確定清除所有積分歷史？', shareAgo:(n,k)=>`GeoMinary中${n}隔了${k}次出現！`, shareStreak:(n,k)=>`GeoMinary中${n}連續${k}次！`, shareProb:(n,p)=>`GeoMinary中${n}出現了！P=1/${p}`, theaterExitConfirm:'退出劇院模式？' },
-  ko: { flag:'🇰🇷', name:'한국어', themeNames:['사이버','와비','미니멀','네온','카페','귀여운','평온','판타지'], tabCount:'출현 횟수', tabStreak:'연속 기록', scaleLabels:['횟수','log₂','정규화'], prob:' 확률: ', resetTitle:'모드를 선택하여 초기화', resetRandom:'일반 모드 (확률)', resetBinary:'이진수 모드', resetCancel:'취소', secTheme:'테마', secDisplay:'표시 스케일', secLang:'언어', secAppearance:'표시 설정', labelTheater:'시어터 모드', labelEffects:'연출 효과', scaleBtnLabels:['횟수 (보통)', 'log₂(횟수)', 'log₂(횟수/총계) / (-n)'], fire:'점화🔥', lastAt:'마지막:', lastUnit:'번째', lastNone:'기록없음', normal:'×1', replayFrom:'▶ 여기서 재현', replayStop:'■ 정지', historyTitle:'의 출현 간격（최근', historyTitleSuffix:'회）', historyAvg:'평균 간격:', historyLast:'마지막:', historyLastUnit:'번째', historyAvgRecent:'최근 평균:', historyAvgTotal:'전체 평균:', historyExpected:'기대 횟수:', historyTotalCount:'총 출현:', historyStddev:'표준편차:', historyZscore:'Z값:', historyProbWithin:'|Z|이상:', secData:'데이터', btnExport:'📋 데이터 복사', btnImport:'📥 데이터 불러오기', dataCopied:'✓ 복사했습니다！', dataCopyManual:'길게 눌러 복사', dataEmpty:'데이터 없음', dataError:'오류 발생', dataPaste:'데이터를 붙여넣기', dataInvalid:'잘못된 데이터', dataLoaded:'✓ 불러오기 완료！', btnImportConfirm:'불러오기', pointsHistory:'포인트 기록', pointsClearAll:'전체 삭제', pointsRarity:'희귀도', pointsTotal:'총계', pointsAgo:'번째 등장！', pointsStreak:'연속！', pointsEffectLabel:'포인트 연출', pointsDeleteConfirm:'삭제하시겠습니까？', pointsClearConfirm:'포인트 기록을 전부 삭제하시겠습니까？', shareAgo:(n,k)=>`GeoMinary에서 ${n}이 ${k}번 만에 등장！`, shareStreak:(n,k)=>`GeoMinary에서 ${n}이 ${k}연속！`, shareProb:(n,p)=>`GeoMinary에서 ${n} 등장！P=1/${p}`, theaterExitConfirm:'시어터 모드를 종료하시겠습니까？' },
-  es: { flag:'🇪🇸', name:'Español', themeNames:['Ciber','Wabi','Minimal','Neón','Café','Kawaii','Sereno','Fantasía'], tabCount:'Conteo', tabStreak:'Racha', scaleLabels:['Conteo','log₂','Norm'], prob:' probabilidad: ', resetTitle:'Seleccionar modo', resetRandom:'Modo normal', resetBinary:'Modo binario', resetCancel:'Cancelar', secTheme:'Tema', secDisplay:'Escala', secLang:'Idioma', secAppearance:'Visualización', labelTheater:'Modo teatro', labelEffects:'Efectos', scaleBtnLabels:['Conteo (normal)', 'log₂(Conteo)', 'log₂(Conteo/total) / (-n)'], fire:'Lanzar🔥', lastAt:'Última:', lastUnit:'ª', lastNone:'Sin registro', normal:'×1', replayFrom:'▶ Reproducir desde aquí', replayStop:'■ Parar', secData:'Datos', historyTitle:'Intervalo de', historyTitleSuffix:'recientes)', historyAvg:'Intervalo medio:', historyLast:'Último:', historyLastUnit:'', historyAvgRecent:'Prom. reciente:', historyAvgTotal:'Prom. total:', historyExpected:'Esperado:', historyTotalCount:'Total:', historyStddev:'Desv. est.:', historyZscore:'Puntuación Z:', historyProbWithin:'Fuera |Z|:', btnExport:'📋 Copiar datos', btnImport:'📥 Cargar datos', dataCopied:'✓ Copiado！', dataCopyManual:'Mantén pulsado para copiar', dataEmpty:'Sin datos', dataError:'Error', dataPaste:'Pega los datos aquí', dataInvalid:'Datos inválidos', dataLoaded:'✓ Cargado！', btnImportConfirm:'Cargar', pointsHistory:'Historial', pointsClearAll:'Borrar todo', pointsRarity:'Rareza', pointsTotal:'TOTAL', pointsAgo:'tras ausencia！', pointsStreak:'racha！', pointsEffectLabel:'Efectos de puntos', pointsDeleteConfirm:'¿Eliminar este registro?', pointsClearConfirm:'¿Borrar todo el historial?', shareAgo:(n,k)=>`GeoMinary: ${n} apareció tras ${k} turnos！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} racha！`, shareProb:(n,p)=>`GeoMinary: ¡Apareció ${n}！P=1/${p}`, theaterExitConfirm:'¿Salir del modo teatro?' },
-  fr: { flag:'🇫🇷', name:'Français', themeNames:['Cyber','Wabi','Minimal','Néon','Café','Kawaii','Sérénité','Fantaisie'], tabCount:'Comptage', tabStreak:'Série', scaleLabels:['Comptage','log₂','Norm'], prob:' probabilité: ', resetTitle:'Choisir le mode', resetRandom:'Mode normal', resetBinary:'Mode binaire', resetCancel:'Annuler', secTheme:'Thème', secDisplay:'Échelle', secLang:'Langue', secAppearance:'Affichage', labelTheater:'Mode théâtre', labelEffects:'Effets', scaleBtnLabels:['Comptage (normal)', 'log₂(Comptage)', 'log₂(Comptage/total) / (-n)'], fire:'Lancer🔥', lastAt:'Dernier:', lastUnit:'e', lastNone:'Aucun', normal:'×1', replayFrom:'▶ Rejouer depuis ici', replayStop:'■ Arrêter', historyTitle:'Intervalle de', historyTitleSuffix:'récents)', historyAvg:'Intervalle moy.:', historyLast:'Dernier:', historyLastUnit:'', historyAvgRecent:'Moy. récente:', historyAvgTotal:'Moy. totale:', historyExpected:'Attendu:', historyTotalCount:'Total:', historyStddev:'Écart-type:', historyZscore:'Score Z:', historyProbWithin:'Hors |Z|:', secData:'Données', btnExport:'📋 Copier données', btnImport:'📥 Charger données', dataCopied:'✓ Copié！', dataCopyManual:'Appui long pour copier', dataEmpty:'Pas de données', dataError:'Erreur', dataPaste:'Collez les données ici', dataInvalid:'Données invalides', dataLoaded:'✓ Chargé！', btnImportConfirm:'Charger', pointsHistory:'Historique', pointsClearAll:'Tout effacer', pointsRarity:'Rareté', pointsTotal:'TOTAL', pointsAgo:'tours après！', pointsStreak:'en série！', pointsEffectLabel:'Effets de points', pointsDeleteConfirm:'Supprimer cette entrée ?', pointsClearConfirm:'Effacer tout l\'historique ?', shareAgo:(n,k)=>`GeoMinary: ${n} après ${k} tours！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} série！`, shareProb:(n,p)=>`GeoMinary: ${n} est apparu！P=1/${p}`, theaterExitConfirm:'Quitter le mode théâtre ?' },
-  pt: { flag:'🇧🇷', name:'Português', themeNames:['Cyber','Wabi','Minimal','Neon','Café','Kawaii','Serenidade','Fantasia'], tabCount:'Contagem', tabStreak:'Sequência', scaleLabels:['Contagem','log₂','Norm'], prob:' probabilidade: ', resetTitle:'Selecionar modo', resetRandom:'Modo normal', resetBinary:'Modo binário', resetCancel:'Cancelar', secTheme:'Tema', secDisplay:'Escala', secLang:'Idioma', secAppearance:'Exibição', labelTheater:'Modo teatro', labelEffects:'Efeitos', scaleBtnLabels:['Contagem (normal)', 'log₂(Contagem)', 'log₂(Contagem/total) / (-n)'], fire:'Disparar🔥', lastAt:'Última:', lastUnit:'ª', lastNone:'Sem registro', normal:'×1', replayFrom:'▶ Reproduzir daqui', replayStop:'■ Parar', secData:'Dados', historyTitle:'Intervalo de', historyTitleSuffix:'recentes)', historyAvg:'Intervalo médio:', historyLast:'Último:', historyLastUnit:'', historyAvgRecent:'Méd. recente:', historyAvgTotal:'Méd. total:', historyExpected:'Esperado:', historyTotalCount:'Total:', historyStddev:'Desvio pad.:', historyZscore:'Pontuação Z:', historyProbWithin:'Fora |Z|:', btnExport:'📋 Copiar dados', btnImport:'📥 Carregar dados', dataCopied:'✓ Copiado！', dataCopyManual:'Pressione para copiar', dataEmpty:'Sem dados', dataError:'Erro', dataPaste:'Cole os dados aqui', dataInvalid:'Dados inválidos', dataLoaded:'✓ Carregado！', btnImportConfirm:'Carregar', pointsHistory:'Histórico', pointsClearAll:'Limpar tudo', pointsRarity:'Raridade', pointsTotal:'TOTAL', pointsAgo:'turnos depois！', pointsStreak:'seguidos！', pointsEffectLabel:'Efeitos de pontos', pointsDeleteConfirm:'Excluir este registro?', pointsClearConfirm:'Limpar todo o histórico?', shareAgo:(n,k)=>`GeoMinary: ${n} após ${k} turnos！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} seguidos！`, shareProb:(n,p)=>`GeoMinary: ${n} apareceu！P=1/${p}`, theaterExitConfirm:'Sair do modo teatro?' },
-  ru: { flag:'🇷🇺', name:'Русский', themeNames:['Кибер','Ваби','Минимал','Неон','Кафе','Каваии','Покой','Фэнтези'], tabCount:'Количество', tabStreak:'Серия', scaleLabels:['Счёт','log₂','Норм'], prob:' вероятность: ', resetTitle:'Выберите режим', resetRandom:'Обычный режим', resetBinary:'Двоичный режим', resetCancel:'Отмена', secTheme:'Тема', secDisplay:'Масштаб', secLang:'Язык', secAppearance:'Вид', labelTheater:'Режим театра', labelEffects:'Эффекты', scaleBtnLabels:['Счёт (обычный)', 'log₂(Счёт)', 'log₂(Счёт/всего) / (-n)'], fire:'Огонь🔥', lastAt:'Последний:', lastUnit:'-й', lastNone:'Нет записи', normal:'×1', replayFrom:'▶ Воспроизвести отсюда', replayStop:'■ Стоп', secData:'Данные', historyTitle:'Интервалы для ', historyTitleSuffix:' (посл.)', historyAvg:'Ср. интервал:', historyLast:'Последний:', historyLastUnit:'-й', historyAvgRecent:'Ср. посл.:', historyAvgTotal:'Ср. всего:', historyExpected:'Ожидаемо:', historyTotalCount:'Всего:', historyStddev:'Ст. откл.:', historyZscore:'Z-оценка:', historyProbWithin:'|Z| и выше:', btnExport:'📋 Копировать', btnImport:'📥 Загрузить', dataCopied:'✓ Скопировано!', dataCopyManual:'Удерживайте для копирования', dataEmpty:'Нет данных', dataError:'Ошибка', dataPaste:'Вставьте данные', dataInvalid:'Неверные данные', dataLoaded:'✓ Загружено!', btnImportConfirm:'Загрузить', pointsHistory:'История очков', pointsClearAll:'Очистить всё', pointsRarity:'Редкость', pointsTotal:'ИТОГО', pointsAgo:' раз спустя！', pointsStreak:'подряд！', pointsEffectLabel:'Эффекты очков', pointsDeleteConfirm:'Удалить запись?', pointsClearConfirm:'Очистить всю историю очков?', shareAgo:(n,k)=>`GeoMinary: ${n} через ${k} ходов！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} подряд！`, shareProb:(n,p)=>`GeoMinary: выпало ${n}！P=1/${p}`, theaterExitConfirm:'Выйти из режима театра?' },
-  de: { flag:'🇩🇪', name:'Deutsch', themeNames:['Cyber','Wabi','Minimal','Neon','Café','Kawaii','Stille','Fantasie'], tabCount:'Anzahl', tabStreak:'Serie', scaleLabels:['Anzahl','log₂','Norm'], prob:' Wahrsch.: ', resetTitle:'Modus wählen', resetRandom:'Normalmodus', resetBinary:'Binärmodus', resetCancel:'Abbrechen', secTheme:'Thema', secDisplay:'Skala', secLang:'Sprache', secAppearance:'Anzeige', labelTheater:'Theatermodus', labelEffects:'Effekte', scaleBtnLabels:['Anzahl (normal)', 'log₂(Anzahl)', 'log₂(Anzahl/gesamt) / (-n)'], fire:'Feuer🔥', lastAt:'Letztes:', lastUnit:'.', lastNone:'Kein Eintrag', normal:'×1', replayFrom:'▶ Von hier abspielen', replayStop:'■ Stopp', secData:'Daten', historyTitle:'Intervalle für ', historyTitleSuffix:' (letzt.)', historyAvg:'Ø Intervall:', historyLast:'Letztes:', historyLastUnit:'.', historyAvgRecent:'Akt. Ø:', historyAvgTotal:'Ges. Ø:', historyExpected:'Erwartet:', historyTotalCount:'Gesamt:', historyStddev:'Std.abw.:', historyZscore:'Z-Wert:', historyProbWithin:'|Z| u. mehr:', btnExport:'📋 Daten kopieren', btnImport:'📥 Daten laden', dataCopied:'✓ Kopiert!', dataCopyManual:'Gedrückt halten', dataEmpty:'Keine Daten', dataError:'Fehler', dataPaste:'Daten einfügen', dataInvalid:'Ungültige Daten', dataLoaded:'✓ Geladen!', btnImportConfirm:'Laden', pointsHistory:'Punkteverlauf', pointsClearAll:'Alle löschen', pointsRarity:'Seltenheit', pointsTotal:'GESAMT', pointsAgo:' mal später！', pointsStreak:'mal hintereinander！', pointsEffectLabel:'Punkteeffekte', pointsDeleteConfirm:'Eintrag löschen?', pointsClearConfirm:'Gesamten Verlauf löschen?', shareAgo:(n,k)=>`GeoMinary: ${n} nach ${k} Runden！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} Serie！`, shareProb:(n,p)=>`GeoMinary: ${n} erschienen！P=1/${p}`, theaterExitConfirm:'Theatermodus beenden?' },
+  ja: { previewLabel:'予告演出', foreshadowMsg:'レアの予感…', bgmLabel:'BGM', seVolLabel:'効果音の音量', bgmVolLabel:'BGMの音量', tickSeLabel:'数字音', seLabel:'効果音', timeUnits:['時間','分','秒'], timeSep:'', screenshotHint:'長押しで写真に保存', screenshotClose:'閉じる', pointsEmptyMsg:'まだポイントがありません', flag:'🇯🇵', name:'日本語', themeNames:['サイバー','和風','ミニマル','ネオン','カフェ','かわいい','やすらぎ','ファンタジー'], tabCount:'出現回数', tabStreak:'連続記録', scaleLabels:['回数','log₂','正規化'], prob:' の確率：', resetTitle:'モードを選んでリセット', resetRandom:'通常モード（確率）', resetBinary:'2進数モード', resetCancel:'キャンセル', secTheme:'テーマ', secDisplay:'表示スケール', secLang:'言語', secAppearance:'表示設定', labelTheater:'シアターモード', labelEffects:'演出エフェクト', scaleBtnLabels:['回数（通常）', 'log₂(回数)', 'log₂(回数/total) / (-n)'], fire:'発火🔥', lastAt:'最後:', lastUnit:'回目', lastNone:'記録なし', normal:'×1', replayFrom:'▶ ここから再現', replayStop:'■ 停止', historyTitle:'の出現間隔（直近', historyTitleSuffix:'回）', historyAvg:'平均間隔:', historyLast:'最後:', historyLastUnit:'回目', historyAvgRecent:'直近平均:', historyAvgTotal:'総平均:', historyExpected:'期待回数:', historyTotalCount:'総出現:', historyStddev:'標準偏差:', historyZscore:'Z値:', historyProbWithin:'|Z|以上:', secData:'データ', btnExport:'📋 データをコピー', btnImport:'📥 データを読み込む', dataCopied:'✓ コピーしました！', dataCopyManual:'長押しでコピーしてください', dataEmpty:'データがありません', dataError:'エラーが発生しました', dataPaste:'データを貼り付けてください', dataInvalid:'無効なデータです', dataLoaded:'✓ 読み込み完了！', btnImportConfirm:'読み込む', pointsHistory:'ポイント履歴', pointsClearAll:'全消し', pointsRarity:'レア度', pointsTotal:'TOTAL', pointsAgo:'回ぶり！', pointsStreak:'連続！', pointsEffectLabel:'ポイント演出', pointsDeleteConfirm:'削除しますか？', pointsClearConfirm:'ポイント履歴を全消しします。よろしいですか？', shareAgo:(n,k)=>`GeoMinaryで${n}が${k}回ぶり！`, shareStreak:(n,k)=>`GeoMinaryで${n}が${k}連続！`, shareProb:(n,p)=>`GeoMinaryで${n}が出た！P=1/${p}`, theaterExitConfirm:'シアターモードを終了しますか？' },
+  en: { previewLabel:'Rare preview', foreshadowMsg:'Something rare is coming…', bgmLabel:'Music', seVolLabel:'SFX volume', bgmVolLabel:'Music volume', tickSeLabel:'Number sounds', seLabel:'Sound effects', timeUnits:['h','m','s'], timeSep:' ', screenshotHint:'Long-press to save to Photos', screenshotClose:'Close', pointsEmptyMsg:'No points yet', flag:'🇺🇸', name:'English', themeNames:['Cyber','Wabi','Minimal','Neon','Cafe','Kawaii','Yasuragi','Fantasy'], tabCount:'Count', tabStreak:'Streak', scaleLabels:['Count','log₂','Norm'], prob:' probability: ', resetTitle:'Select mode to reset', resetRandom:'Normal mode (random)', resetBinary:'Binary mode', resetCancel:'Cancel', secTheme:'Theme', secDisplay:'Scale', secLang:'Language', secAppearance:'Display', labelTheater:'Theater mode', labelEffects:'Effects', scaleBtnLabels:['Count (normal)', 'log₂(Count)', 'log₂(Count/total) / (-n)'], fire:'Fire🔥', lastAt:'Last:', lastUnit:'', lastNone:'No record', normal:'×1', replayFrom:'▶ Replay from here', replayStop:'■ Stop', historyTitle:'Interval for', historyTitleSuffix:'recent)', historyAvg:'Avg interval:', historyLast:'Last:', historyLastUnit:'', historyAvgRecent:'Recent avg:', historyAvgTotal:'Total avg:', historyExpected:'Expected:', historyTotalCount:'Total count:', historyStddev:'Std dev:', historyZscore:'Z-score:', historyProbWithin:'Beyond |Z|:', secData:'Data', btnExport:'📋 Copy Data', btnImport:'📥 Load Data', dataCopied:'✓ Copied!', dataCopyManual:'Long-press to copy', dataEmpty:'No data', dataError:'Error occurred', dataPaste:'Paste data here', dataInvalid:'Invalid data', dataLoaded:'✓ Loaded!', btnImportConfirm:'Load', pointsHistory:'Point History', pointsClearAll:'Clear All', pointsRarity:'Rarity', pointsTotal:'TOTAL', pointsAgo:' turns back!', pointsStreak:'x streak!', pointsEffectLabel:'Point Effects', pointsDeleteConfirm:'Delete this entry?', pointsClearConfirm:'Clear all point history?', shareAgo:(n,k)=>`GeoMinary: ${n} after ${k} turns!`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} streak!`, shareProb:(n,p)=>`GeoMinary: ${n} appeared! P=1/${p}`, theaterExitConfirm:'Exit theater mode?' },
+  zhCN: { previewLabel:'预告演出', foreshadowMsg:'有稀有的预感…', bgmLabel:'BGM', seVolLabel:'音效音量', bgmVolLabel:'BGM音量', tickSeLabel:'数字音', seLabel:'音效', timeUnits:['小时','分','秒'], timeSep:'', screenshotHint:'长按保存到相册', screenshotClose:'关闭', pointsEmptyMsg:'还没有积分', flag:'🇨🇳', name:'中文(简体)', themeNames:['赛博','和风','极简','霓虹','咖啡','可爱','静谧','幻想'], tabCount:'出现次数', tabStreak:'连续记录', scaleLabels:['次数','log₂','标准化'], prob:' 概率：', resetTitle:'选择模式并重置', resetRandom:'普通模式（随机）', resetBinary:'二进制模式', resetCancel:'取消', secTheme:'主题', secDisplay:'显示比例', secLang:'语言', secAppearance:'显示设置', labelTheater:'剧院模式', labelEffects:'演出效果', scaleBtnLabels:['次数（普通）', 'log₂(次数)', 'log₂(次数/总计) / (-n)'], fire:'触发🔥', lastAt:'最后:', lastUnit:'次', lastNone:'无记录', normal:'×1', replayFrom:'▶ 从此处重放', replayStop:'■ 停止', secData:'数据', historyTitle:'的出现间隔（最近', historyTitleSuffix:'次）', historyAvg:'平均间隔:', historyLast:'最后:', historyLastUnit:'次', historyAvgRecent:'近期平均:', historyAvgTotal:'总平均:', historyExpected:'期望次数:', historyTotalCount:'总出现:', historyStddev:'标准差:', historyZscore:'Z值:', historyProbWithin:'|Z|外:', btnExport:'📋 复制数据', btnImport:'📥 读取数据', dataCopied:'✓ 已复制！', dataCopyManual:'长按复制', dataEmpty:'没有数据', dataError:'发生错误', dataPaste:'请粘贴数据', dataInvalid:'无效数据', dataLoaded:'✓ 读取完成！', btnImportConfirm:'读取', pointsHistory:'积分历史', pointsClearAll:'全部清除', pointsRarity:'稀有度', pointsTotal:'总计', pointsAgo:'次后！', pointsStreak:'连续！', pointsEffectLabel:'积分演出', pointsDeleteConfirm:'确定删除？', pointsClearConfirm:'确定清除所有积分历史？', shareAgo:(n,k)=>`GeoMinary中${n}隔了${k}次出现！`, shareStreak:(n,k)=>`GeoMinary中${n}连续${k}次！`, shareProb:(n,p)=>`GeoMinary中${n}出现了！P=1/${p}`, theaterExitConfirm:'退出剧院模式？' },
+  zhTW: { previewLabel:'預告演出', foreshadowMsg:'有稀有的預感…', bgmLabel:'BGM', seVolLabel:'音效音量', bgmVolLabel:'BGM音量', tickSeLabel:'數字音', seLabel:'音效', timeUnits:['小時','分','秒'], timeSep:'', screenshotHint:'長按儲存到相簿', screenshotClose:'關閉', pointsEmptyMsg:'還沒有積分', flag:'🇹🇼', name:'中文(繁體)', themeNames:['賽博','和風','極簡','霓虹','咖啡','可愛','靜謐','奇幻'], tabCount:'出現次數', tabStreak:'連續記錄', scaleLabels:['次數','log₂','標準化'], prob:' 概率：', resetTitle:'選擇模式並重置', resetRandom:'普通模式（隨機）', resetBinary:'二進位模式', resetCancel:'取消', secTheme:'主題', secDisplay:'顯示比例', secLang:'語言', secAppearance:'顯示設置', labelTheater:'劇院模式', labelEffects:'演出效果', scaleBtnLabels:['次數（普通）', 'log₂(次數)', 'log₂(次數/總計) / (-n)'], fire:'觸發🔥', lastAt:'最後:', lastUnit:'次', lastNone:'無記錄', normal:'×1', replayFrom:'▶ 從此處重放', replayStop:'■ 停止', secData:'數據', historyTitle:'的出現間隔（最近', historyTitleSuffix:'次）', historyAvg:'平均間隔:', historyLast:'最後:', historyLastUnit:'次', historyAvgRecent:'近期平均:', historyAvgTotal:'總平均:', historyExpected:'期望次數:', historyTotalCount:'總出現:', historyStddev:'標準差:', historyZscore:'Z值:', historyProbWithin:'|Z|外:', btnExport:'📋 複製數據', btnImport:'📥 讀取數據', dataCopied:'✓ 已複製！', dataCopyManual:'長按複製', dataEmpty:'沒有數據', dataError:'發生錯誤', dataPaste:'請貼上數據', dataInvalid:'無效數據', dataLoaded:'✓ 讀取完成！', btnImportConfirm:'讀取', pointsHistory:'積分歷史', pointsClearAll:'全部清除', pointsRarity:'稀有度', pointsTotal:'總計', pointsAgo:'次後！', pointsStreak:'連續！', pointsEffectLabel:'積分演出', pointsDeleteConfirm:'確定刪除？', pointsClearConfirm:'確定清除所有積分歷史？', shareAgo:(n,k)=>`GeoMinary中${n}隔了${k}次出現！`, shareStreak:(n,k)=>`GeoMinary中${n}連續${k}次！`, shareProb:(n,p)=>`GeoMinary中${n}出現了！P=1/${p}`, theaterExitConfirm:'退出劇院模式？' },
+  ko: { previewLabel:'예고 연출', foreshadowMsg:'희귀한 예감…', bgmLabel:'BGM', seVolLabel:'효과음 볼륨', bgmVolLabel:'BGM 볼륨', tickSeLabel:'숫자음', seLabel:'효과음', timeUnits:['시간','분','초'], timeSep:' ', screenshotHint:'길게 눌러 사진에 저장', screenshotClose:'닫기', pointsEmptyMsg:'아직 포인트가 없습니다', flag:'🇰🇷', name:'한국어', themeNames:['사이버','와비','미니멀','네온','카페','귀여운','평온','판타지'], tabCount:'출현 횟수', tabStreak:'연속 기록', scaleLabels:['횟수','log₂','정규화'], prob:' 확률: ', resetTitle:'모드를 선택하여 초기화', resetRandom:'일반 모드 (확률)', resetBinary:'이진수 모드', resetCancel:'취소', secTheme:'테마', secDisplay:'표시 스케일', secLang:'언어', secAppearance:'표시 설정', labelTheater:'시어터 모드', labelEffects:'연출 효과', scaleBtnLabels:['횟수 (보통)', 'log₂(횟수)', 'log₂(횟수/총계) / (-n)'], fire:'점화🔥', lastAt:'마지막:', lastUnit:'번째', lastNone:'기록없음', normal:'×1', replayFrom:'▶ 여기서 재현', replayStop:'■ 정지', historyTitle:'의 출현 간격（최근', historyTitleSuffix:'회）', historyAvg:'평균 간격:', historyLast:'마지막:', historyLastUnit:'번째', historyAvgRecent:'최근 평균:', historyAvgTotal:'전체 평균:', historyExpected:'기대 횟수:', historyTotalCount:'총 출현:', historyStddev:'표준편차:', historyZscore:'Z값:', historyProbWithin:'|Z|이상:', secData:'데이터', btnExport:'📋 데이터 복사', btnImport:'📥 데이터 불러오기', dataCopied:'✓ 복사했습니다！', dataCopyManual:'길게 눌러 복사', dataEmpty:'데이터 없음', dataError:'오류 발생', dataPaste:'데이터를 붙여넣기', dataInvalid:'잘못된 데이터', dataLoaded:'✓ 불러오기 완료！', btnImportConfirm:'불러오기', pointsHistory:'포인트 기록', pointsClearAll:'전체 삭제', pointsRarity:'희귀도', pointsTotal:'총계', pointsAgo:'번째 등장！', pointsStreak:'연속！', pointsEffectLabel:'포인트 연출', pointsDeleteConfirm:'삭제하시겠습니까？', pointsClearConfirm:'포인트 기록을 전부 삭제하시겠습니까？', shareAgo:(n,k)=>`GeoMinary에서 ${n}이 ${k}번 만에 등장！`, shareStreak:(n,k)=>`GeoMinary에서 ${n}이 ${k}연속！`, shareProb:(n,p)=>`GeoMinary에서 ${n} 등장！P=1/${p}`, theaterExitConfirm:'시어터 모드를 종료하시겠습니까？' },
+  es: { previewLabel:'Aviso de rareza', foreshadowMsg:'Presiento algo raro…', bgmLabel:'Música', seVolLabel:'Volumen de efectos', bgmVolLabel:'Volumen de música', tickSeLabel:'Sonido de números', seLabel:'Efectos de sonido', timeUnits:['h','min','s'], timeSep:' ', screenshotHint:'Mantén pulsado para guardar en Fotos', screenshotClose:'Cerrar', pointsEmptyMsg:'Aún no hay puntos', flag:'🇪🇸', name:'Español', themeNames:['Ciber','Wabi','Minimal','Neón','Café','Kawaii','Sereno','Fantasía'], tabCount:'Conteo', tabStreak:'Racha', scaleLabels:['Conteo','log₂','Norm'], prob:' probabilidad: ', resetTitle:'Seleccionar modo', resetRandom:'Modo normal', resetBinary:'Modo binario', resetCancel:'Cancelar', secTheme:'Tema', secDisplay:'Escala', secLang:'Idioma', secAppearance:'Visualización', labelTheater:'Modo teatro', labelEffects:'Efectos', scaleBtnLabels:['Conteo (normal)', 'log₂(Conteo)', 'log₂(Conteo/total) / (-n)'], fire:'Lanzar🔥', lastAt:'Última:', lastUnit:'ª', lastNone:'Sin registro', normal:'×1', replayFrom:'▶ Reproducir desde aquí', replayStop:'■ Parar', secData:'Datos', historyTitle:'Intervalo de', historyTitleSuffix:'recientes)', historyAvg:'Intervalo medio:', historyLast:'Último:', historyLastUnit:'', historyAvgRecent:'Prom. reciente:', historyAvgTotal:'Prom. total:', historyExpected:'Esperado:', historyTotalCount:'Total:', historyStddev:'Desv. est.:', historyZscore:'Puntuación Z:', historyProbWithin:'Fuera |Z|:', btnExport:'📋 Copiar datos', btnImport:'📥 Cargar datos', dataCopied:'✓ Copiado！', dataCopyManual:'Mantén pulsado para copiar', dataEmpty:'Sin datos', dataError:'Error', dataPaste:'Pega los datos aquí', dataInvalid:'Datos inválidos', dataLoaded:'✓ Cargado！', btnImportConfirm:'Cargar', pointsHistory:'Historial', pointsClearAll:'Borrar todo', pointsRarity:'Rareza', pointsTotal:'TOTAL', pointsAgo:'tras ausencia！', pointsStreak:'racha！', pointsEffectLabel:'Efectos de puntos', pointsDeleteConfirm:'¿Eliminar este registro?', pointsClearConfirm:'¿Borrar todo el historial?', shareAgo:(n,k)=>`GeoMinary: ${n} apareció tras ${k} turnos！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} racha！`, shareProb:(n,p)=>`GeoMinary: ¡Apareció ${n}！P=1/${p}`, theaterExitConfirm:'¿Salir del modo teatro?' },
+  fr: { previewLabel:'Alerte rareté', foreshadowMsg:'Un parfum de rareté…', bgmLabel:'Musique', seVolLabel:'Volume des effets', bgmVolLabel:'Volume de la musique', tickSeLabel:'Sons des nombres', seLabel:'Effets sonores', timeUnits:['h','min','s'], timeSep:' ', screenshotHint:'Appui long pour enregistrer dans Photos', screenshotClose:'Fermer', pointsEmptyMsg:'Aucun point pour le moment', flag:'🇫🇷', name:'Français', themeNames:['Cyber','Wabi','Minimal','Néon','Café','Kawaii','Sérénité','Fantaisie'], tabCount:'Comptage', tabStreak:'Série', scaleLabels:['Comptage','log₂','Norm'], prob:' probabilité: ', resetTitle:'Choisir le mode', resetRandom:'Mode normal', resetBinary:'Mode binaire', resetCancel:'Annuler', secTheme:'Thème', secDisplay:'Échelle', secLang:'Langue', secAppearance:'Affichage', labelTheater:'Mode théâtre', labelEffects:'Effets', scaleBtnLabels:['Comptage (normal)', 'log₂(Comptage)', 'log₂(Comptage/total) / (-n)'], fire:'Lancer🔥', lastAt:'Dernier:', lastUnit:'e', lastNone:'Aucun', normal:'×1', replayFrom:'▶ Rejouer depuis ici', replayStop:'■ Arrêter', historyTitle:'Intervalle de', historyTitleSuffix:'récents)', historyAvg:'Intervalle moy.:', historyLast:'Dernier:', historyLastUnit:'', historyAvgRecent:'Moy. récente:', historyAvgTotal:'Moy. totale:', historyExpected:'Attendu:', historyTotalCount:'Total:', historyStddev:'Écart-type:', historyZscore:'Score Z:', historyProbWithin:'Hors |Z|:', secData:'Données', btnExport:'📋 Copier données', btnImport:'📥 Charger données', dataCopied:'✓ Copié！', dataCopyManual:'Appui long pour copier', dataEmpty:'Pas de données', dataError:'Erreur', dataPaste:'Collez les données ici', dataInvalid:'Données invalides', dataLoaded:'✓ Chargé！', btnImportConfirm:'Charger', pointsHistory:'Historique', pointsClearAll:'Tout effacer', pointsRarity:'Rareté', pointsTotal:'TOTAL', pointsAgo:'tours après！', pointsStreak:'en série！', pointsEffectLabel:'Effets de points', pointsDeleteConfirm:'Supprimer cette entrée ?', pointsClearConfirm:'Effacer tout l\'historique ?', shareAgo:(n,k)=>`GeoMinary: ${n} après ${k} tours！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} série！`, shareProb:(n,p)=>`GeoMinary: ${n} est apparu！P=1/${p}`, theaterExitConfirm:'Quitter le mode théâtre ?' },
+  pt: { previewLabel:'Aviso de raridade', foreshadowMsg:'Sinto algo raro…', bgmLabel:'Música', seVolLabel:'Volume dos efeitos', bgmVolLabel:'Volume da música', tickSeLabel:'Sons dos números', seLabel:'Efeitos sonoros', timeUnits:['h','min','s'], timeSep:' ', screenshotHint:'Toque e segure para salvar em Fotos', screenshotClose:'Fechar', pointsEmptyMsg:'Ainda não há pontos', flag:'🇧🇷', name:'Português', themeNames:['Cyber','Wabi','Minimal','Neon','Café','Kawaii','Serenidade','Fantasia'], tabCount:'Contagem', tabStreak:'Sequência', scaleLabels:['Contagem','log₂','Norm'], prob:' probabilidade: ', resetTitle:'Selecionar modo', resetRandom:'Modo normal', resetBinary:'Modo binário', resetCancel:'Cancelar', secTheme:'Tema', secDisplay:'Escala', secLang:'Idioma', secAppearance:'Exibição', labelTheater:'Modo teatro', labelEffects:'Efeitos', scaleBtnLabels:['Contagem (normal)', 'log₂(Contagem)', 'log₂(Contagem/total) / (-n)'], fire:'Disparar🔥', lastAt:'Última:', lastUnit:'ª', lastNone:'Sem registro', normal:'×1', replayFrom:'▶ Reproduzir daqui', replayStop:'■ Parar', secData:'Dados', historyTitle:'Intervalo de', historyTitleSuffix:'recentes)', historyAvg:'Intervalo médio:', historyLast:'Último:', historyLastUnit:'', historyAvgRecent:'Méd. recente:', historyAvgTotal:'Méd. total:', historyExpected:'Esperado:', historyTotalCount:'Total:', historyStddev:'Desvio pad.:', historyZscore:'Pontuação Z:', historyProbWithin:'Fora |Z|:', btnExport:'📋 Copiar dados', btnImport:'📥 Carregar dados', dataCopied:'✓ Copiado！', dataCopyManual:'Pressione para copiar', dataEmpty:'Sem dados', dataError:'Erro', dataPaste:'Cole os dados aqui', dataInvalid:'Dados inválidos', dataLoaded:'✓ Carregado！', btnImportConfirm:'Carregar', pointsHistory:'Histórico', pointsClearAll:'Limpar tudo', pointsRarity:'Raridade', pointsTotal:'TOTAL', pointsAgo:'turnos depois！', pointsStreak:'seguidos！', pointsEffectLabel:'Efeitos de pontos', pointsDeleteConfirm:'Excluir este registro?', pointsClearConfirm:'Limpar todo o histórico?', shareAgo:(n,k)=>`GeoMinary: ${n} após ${k} turnos！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} seguidos！`, shareProb:(n,p)=>`GeoMinary: ${n} apareceu！P=1/${p}`, theaterExitConfirm:'Sair do modo teatro?' },
+  ru: { previewLabel:'Предупреждение', foreshadowMsg:'Что-то редкое близко…', bgmLabel:'Музыка', seVolLabel:'Громкость звуков', bgmVolLabel:'Громкость музыки', tickSeLabel:'Звук чисел', seLabel:'Звуки', timeUnits:['ч','мин','с'], timeSep:' ', screenshotHint:'Удерживайте, чтобы сохранить в «Фото»', screenshotClose:'Закрыть', pointsEmptyMsg:'Пока нет очков', flag:'🇷🇺', name:'Русский', themeNames:['Кибер','Ваби','Минимал','Неон','Кафе','Каваии','Покой','Фэнтези'], tabCount:'Количество', tabStreak:'Серия', scaleLabels:['Счёт','log₂','Норм'], prob:' вероятность: ', resetTitle:'Выберите режим', resetRandom:'Обычный режим', resetBinary:'Двоичный режим', resetCancel:'Отмена', secTheme:'Тема', secDisplay:'Масштаб', secLang:'Язык', secAppearance:'Вид', labelTheater:'Режим театра', labelEffects:'Эффекты', scaleBtnLabels:['Счёт (обычный)', 'log₂(Счёт)', 'log₂(Счёт/всего) / (-n)'], fire:'Огонь🔥', lastAt:'Последний:', lastUnit:'-й', lastNone:'Нет записи', normal:'×1', replayFrom:'▶ Воспроизвести отсюда', replayStop:'■ Стоп', secData:'Данные', historyTitle:'Интервалы для ', historyTitleSuffix:' (посл.)', historyAvg:'Ср. интервал:', historyLast:'Последний:', historyLastUnit:'-й', historyAvgRecent:'Ср. посл.:', historyAvgTotal:'Ср. всего:', historyExpected:'Ожидаемо:', historyTotalCount:'Всего:', historyStddev:'Ст. откл.:', historyZscore:'Z-оценка:', historyProbWithin:'|Z| и выше:', btnExport:'📋 Копировать', btnImport:'📥 Загрузить', dataCopied:'✓ Скопировано!', dataCopyManual:'Удерживайте для копирования', dataEmpty:'Нет данных', dataError:'Ошибка', dataPaste:'Вставьте данные', dataInvalid:'Неверные данные', dataLoaded:'✓ Загружено!', btnImportConfirm:'Загрузить', pointsHistory:'История очков', pointsClearAll:'Очистить всё', pointsRarity:'Редкость', pointsTotal:'ИТОГО', pointsAgo:' раз спустя！', pointsStreak:'подряд！', pointsEffectLabel:'Эффекты очков', pointsDeleteConfirm:'Удалить запись?', pointsClearConfirm:'Очистить всю историю очков?', shareAgo:(n,k)=>`GeoMinary: ${n} через ${k} ходов！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} подряд！`, shareProb:(n,p)=>`GeoMinary: выпало ${n}！P=1/${p}`, theaterExitConfirm:'Выйти из режима театра?' },
+  de: { previewLabel:'Raritäts-Vorwarnung', foreshadowMsg:'Etwas Seltenes naht…', bgmLabel:'Musik', seVolLabel:'Effekt-Lautstärke', bgmVolLabel:'Musik-Lautstärke', tickSeLabel:'Zahlensound', seLabel:'Soundeffekte', timeUnits:['Std.','Min.','Sek.'], timeSep:' ', screenshotHint:'Gedrückt halten, um in Fotos zu sichern', screenshotClose:'Schließen', pointsEmptyMsg:'Noch keine Punkte', flag:'🇩🇪', name:'Deutsch', themeNames:['Cyber','Wabi','Minimal','Neon','Café','Kawaii','Stille','Fantasie'], tabCount:'Anzahl', tabStreak:'Serie', scaleLabels:['Anzahl','log₂','Norm'], prob:' Wahrsch.: ', resetTitle:'Modus wählen', resetRandom:'Normalmodus', resetBinary:'Binärmodus', resetCancel:'Abbrechen', secTheme:'Thema', secDisplay:'Skala', secLang:'Sprache', secAppearance:'Anzeige', labelTheater:'Theatermodus', labelEffects:'Effekte', scaleBtnLabels:['Anzahl (normal)', 'log₂(Anzahl)', 'log₂(Anzahl/gesamt) / (-n)'], fire:'Feuer🔥', lastAt:'Letztes:', lastUnit:'.', lastNone:'Kein Eintrag', normal:'×1', replayFrom:'▶ Von hier abspielen', replayStop:'■ Stopp', secData:'Daten', historyTitle:'Intervalle für ', historyTitleSuffix:' (letzt.)', historyAvg:'Ø Intervall:', historyLast:'Letztes:', historyLastUnit:'.', historyAvgRecent:'Akt. Ø:', historyAvgTotal:'Ges. Ø:', historyExpected:'Erwartet:', historyTotalCount:'Gesamt:', historyStddev:'Std.abw.:', historyZscore:'Z-Wert:', historyProbWithin:'|Z| u. mehr:', btnExport:'📋 Daten kopieren', btnImport:'📥 Daten laden', dataCopied:'✓ Kopiert!', dataCopyManual:'Gedrückt halten', dataEmpty:'Keine Daten', dataError:'Fehler', dataPaste:'Daten einfügen', dataInvalid:'Ungültige Daten', dataLoaded:'✓ Geladen!', btnImportConfirm:'Laden', pointsHistory:'Punkteverlauf', pointsClearAll:'Alle löschen', pointsRarity:'Seltenheit', pointsTotal:'GESAMT', pointsAgo:' mal später！', pointsStreak:'mal hintereinander！', pointsEffectLabel:'Punkteeffekte', pointsDeleteConfirm:'Eintrag löschen?', pointsClearConfirm:'Gesamten Verlauf löschen?', shareAgo:(n,k)=>`GeoMinary: ${n} nach ${k} Runden！`, shareStreak:(n,k)=>`GeoMinary: ${n} x${k} Serie！`, shareProb:(n,p)=>`GeoMinary: ${n} erschienen！P=1/${p}`, theaterExitConfirm:'Theatermodus beenden?' },
 };
-let currentLang = LANGS.ja;
-let currentLangKey = 'ja';
+// ブラウザ言語からデフォルト言語を決定（localStorage未保存時のみ使用）
+function detectDefaultLang() {
+  const nav = (navigator.language || navigator.userLanguage || 'ja').toLowerCase();
+  if (nav.startsWith('ja')) return 'ja';
+  if (nav.startsWith('ko')) return 'ko';
+  if (nav.startsWith('zh-tw') || nav.startsWith('zh-hk') || nav.startsWith('zh-hant')) return 'zhTW';
+  if (nav.startsWith('zh')) return 'zhCN';
+  if (nav.startsWith('de')) return 'de';
+  if (nav.startsWith('fr')) return 'fr';
+  if (nav.startsWith('ru')) return 'ru';
+  if (nav.startsWith('es')) return 'es';
+  if (nav.startsWith('pt')) return 'pt';
+  return 'en';
+}
+const _defaultLangKey = detectDefaultLang();
+let currentLang = LANGS[_defaultLangKey];
+let currentLangKey = _defaultLangKey;
 
 function getLangTabCount() {
   const scaleIdx = scaleModes.indexOf(scaleMode);
@@ -1158,6 +1290,18 @@ function applyLang(lang, key) {
   if (lblEffects) lblEffects.textContent = lang.labelEffects || '演出エフェクト';
   const lblPointsEffect = document.getElementById('labelPointsEffect');
   if (lblPointsEffect) lblPointsEffect.textContent = lang.pointsEffectLabel || 'ポイント演出';
+  const lblSE = document.getElementById('labelSE');
+  if (lblSE) lblSE.textContent = lang.seLabel || '効果音';
+  const lblTick = document.getElementById('labelTickSE');
+  if (lblTick) lblTick.textContent = lang.tickSeLabel || '数字音';
+  const lblVol = document.getElementById('labelSEVol');
+  if (lblVol) lblVol.textContent = lang.seVolLabel || '効果音の音量';
+  const lblBgmVol = document.getElementById('labelBGMVol');
+  if (lblBgmVol) lblBgmVol.textContent = lang.bgmVolLabel || 'BGMの音量';
+  const lblBgm = document.getElementById('labelBGM');
+  if (lblBgm) lblBgm.textContent = lang.bgmLabel || 'BGM';
+  const lblPrev = document.getElementById('labelPreview');
+  if (lblPrev) lblPrev.textContent = lang.previewLabel || '予告演出';
   const ptTitle = document.getElementById('pointsPanelTitle');
   if (ptTitle) ptTitle.textContent = (lang.pointsHistory || 'ポイント履歴');
   const ptClear = document.getElementById('pointsClearAll');
@@ -1175,6 +1319,12 @@ function applyLang(lang, key) {
   if (btnExport) btnExport.textContent = lang.btnExport || '📋 データをコピー';
   if (btnImport) btnImport.textContent = lang.btnImport || '📥 データを読み込む';
   if (btnConfirm) btnConfirm.textContent = lang.btnImportConfirm || '読み込む';
+  const _ssHint = document.getElementById('screenshotHint');
+  if (_ssHint) _ssHint.textContent = lang.screenshotHint || '長押しで写真に保存';
+  const _ssClose = document.getElementById('screenshotOverlayClose');
+  if (_ssClose) _ssClose.textContent = lang.screenshotClose || '閉じる';
+  const _ptEmpty = document.getElementById('pointsEmpty');
+  if (_ptEmpty) _ptEmpty.textContent = lang.pointsEmptyMsg || 'まだポイントがありません';
   renderBars();
   const drawerEl = document.getElementById('drawer');
   drawerEl.style.pointerEvents = 'none';
@@ -1206,6 +1356,7 @@ overlay.addEventListener('click', closeDrawer);
 const counts = {};
 const MAX_HISTORY = 1000;
 const numHistory = [];
+const upcoming = []; // 予告演出用：先に引いておく次の数字（ランダムモード）
 let historyBaseStreakBest = {};
 let historyBaseCurNum = null;
 let historyBaseCurCount = 0;
@@ -1491,6 +1642,8 @@ class Particle {
     if(this.alpha<=0)return;
     ctx.save();ctx.globalAlpha=this.alpha;ctx.translate(this.x,this.y);ctx.rotate(this.rotation);
     if(this.shape==='star'){drawStar(ctx,0,0,this.size,this.color);}
+    else if(this.shape==='heart'){const z=this.size;ctx.fillStyle=this.color;ctx.beginPath();ctx.moveTo(0,z*0.35);ctx.bezierCurveTo(-z,-z*0.3,-z*0.6,-z,0,-z*0.5);ctx.bezierCurveTo(z*0.6,-z,z,-z*0.3,0,z*0.35);ctx.fill();}
+    else if(this.shape==='petal'){ctx.fillStyle=this.color;ctx.beginPath();ctx.ellipse(0,0,this.size,this.size*0.55,0,0,Math.PI*2);ctx.fill();}
     else if(this.shape==='spark'){ctx.strokeStyle=this.color;ctx.lineWidth=this.size*0.4;ctx.beginPath();ctx.moveTo(-this.size,0);ctx.lineTo(this.size,0);ctx.stroke();}
     else{ctx.fillStyle=this.color;ctx.beginPath();ctx.arc(0,0,this.size,0,Math.PI*2);ctx.fill();}
     ctx.restore();
@@ -1527,13 +1680,17 @@ function fxLevel6(n){const scale=Math.min(1+(n-15)*0.15,3.5);const count=Math.fl
 function launchFirework(x,y,cols,count){for(let i=0;i<count;i++){const a=(i/count)*Math.PI*2;const s=Math.random()*5+2;effects.push(new Particle(x,y,{vx:Math.cos(a)*s,vy:Math.sin(a)*s,size:Math.random()*4+2,color:cols[i%cols.length],shape:Math.random()<0.3?'star':'circle',decay:0.012,gravity:0.08}));}effects.push(new RingBurst(x,y,cols[0],120));}
 function flashScreen(color,maxAlpha,duration){const el=document.getElementById('flashOverlay');el.style.background=color;el.style.transition='none';el.style.opacity=maxAlpha;setTimeout(()=>{el.style.transition=`opacity ${duration}ms ease-out`;el.style.opacity=0;},30);}
 function shakeScreen(intensity,duration){const wrapper=document.querySelector('.wrapper');const start=performance.now();function step(now){const t=now-start;if(t>duration){wrapper.style.transform='';return;}const decay=1-t/duration;wrapper.style.transform=`translate(${(Math.random()-0.5)*intensity*decay}px,${(Math.random()-0.5)*intensity*decay}px)`;requestAnimationFrame(step);}requestAnimationFrame(step);}
-function triggerEffect(n){if(!effectsEnabled)return;const lv=getLevel(n);if(lv===0)return;if(lv===1)fxLevel1(n);else if(lv===2)fxLevel2(n);else if(lv===3)fxLevel3(n);else if(lv===4)fxLevel4(n);else if(lv===5)fxLevel5(n);else fxLevel6(n);}
+function triggerEffect(n){const lv=getLevel(n);if(lv>0)playTierSE(lv-1);if(!effectsEnabled)return;if(lv===0)return;
+  // 数字そのもののレア度（getLevel: 1〜6）に対応させつつ、テーマ別の演出を出す
+  try{(VFX[currentTheme.id]||VFX.minimal)(lv-1);}catch(e){}
+  if(lv===6){const extra=Math.min(n-15,5);for(let i=0;i<extra;i++){setTimeout(()=>{launchFirework(Math.random()*window.innerWidth,Math.random()*window.innerHeight*0.6,palette(n+i),40);},300+i*200);}}
+}
 
 function loop(){ctx.clearRect(0,0,canvas.width,canvas.height);effects=effects.filter(e=>{e.update();e.draw(ctx);return !e.dead;});requestAnimationFrame(loop);}
 loop();
 
 function accumulate() {
-  const n = gameMode === 'binary' ? sampleBinary() : sample();
+  const n = gameMode === 'binary' ? sampleBinary() : (upcoming.length ? upcoming.shift() : sample());
   counts[n]=(counts[n]||0)+1; total++; if(n>maxSeen){ maxSeen=n; }
   if(n===curStreakNum){curStreakCount++;}else{curStreakNum=n;curStreakCount=1;}
   if(curStreakCount>bestStreakCount){bestStreakCount=curStreakCount;bestStreakNum=curStreakNum;}
@@ -1575,6 +1732,7 @@ function accumulate() {
 }
 
 function updateDisplay(n) {
+  playNumberSE(n);
   const el=document.getElementById('bigNumber');
   if (currentTheme.gentle) {
     el.classList.remove('flash');
@@ -1632,6 +1790,7 @@ function tick() {
     if (isPaused) return;
     let last; for(let i=0;i<tickMultiplier;i++) last=accumulate();
     updateDisplay(last);
+    if (tickMultiplier === 1) checkForeshadow();
   } catch(e) {}
 }
 
@@ -1719,6 +1878,107 @@ document.getElementById('btnShowBase').addEventListener('click', () => {
   overlay.appendChild(pre);
   overlay.appendChild(closeBtn);
   document.body.appendChild(overlay);
+});
+
+// 指定数字で記録に残す発火（デバッグ用）
+function accumulateFixed(n) {
+  counts[n]=(counts[n]||0)+1; total++; if(n>maxSeen){ maxSeen=n; }
+  if(n===curStreakNum){curStreakCount++;}else{curStreakNum=n;curStreakCount=1;}
+  if(curStreakCount>bestStreakCount){bestStreakCount=curStreakCount;bestStreakNum=curStreakNum;}
+  if(curStreakCount>(streakBest[n]||0))streakBest[n]=curStreakCount;
+  addPoints(n);
+  numHistory.push(n);
+  if(numHistory.length > MAX_HISTORY) {
+    const dropping = numHistory[0];
+    const nextBase = Object.assign({}, historyBaseStreakBest);
+    let nextCurNum = historyBaseCurNum;
+    let nextCurCount = historyBaseCurCount;
+    if (dropping === nextCurNum) { nextCurCount++; } else { nextCurNum = dropping; nextCurCount = 1; }
+    if (nextCurCount > (nextBase[dropping]||0)) nextBase[dropping] = nextCurCount;
+    numHistory.shift();
+    historyBaseStreakBest = nextBase;
+    historyBaseCurNum = nextCurNum;
+    historyBaseCurCount = nextCurCount;
+  }
+  lastSeen[n] = total;
+  if (!recentPositions[n]) recentPositions[n] = [];
+  const rp = recentPositions[n];
+  if (rp.length === 0 || total > rp[rp.length - 1]) {
+    rp.push(total);
+    if (rp.length > 101) rp.shift();
+  }
+  return n;
+}
+
+// デバッグ数字ボタングリッド生成
+const debugNumGrid = document.getElementById('debugNumGrid');
+for (let i = 1; i <= 30; i++) {
+  const btn = document.createElement('button');
+  btn.className = 'debug-btn';
+  btn.textContent = i;
+  btn.style.cssText = 'width:36px;height:28px;font-size:11px;padding:0;flex-shrink:0;';
+  btn.addEventListener('click', () => {
+    const input = document.getElementById('debugSeqInput');
+    const cur = input.value.trim();
+    input.value = cur ? cur + ',' + i : String(i);
+    localStorage.setItem('gm_debug_seq', input.value);
+  });
+  debugNumGrid.appendChild(btn);
+}
+// クリアボタン
+const clearBtn = document.createElement('button');
+clearBtn.className = 'debug-btn';
+clearBtn.textContent = '✕';
+clearBtn.style.cssText = 'width:36px;height:28px;font-size:11px;padding:0;flex-shrink:0;background:rgba(255,80,80,0.3);';
+clearBtn.addEventListener('click', () => {
+  document.getElementById('debugSeqInput').value = '';
+  localStorage.removeItem('gm_debug_seq');
+});
+debugNumGrid.appendChild(clearBtn);
+
+// 入力欄の変更を保存
+document.getElementById('debugSeqInput').addEventListener('input', () => {
+  const val = document.getElementById('debugSeqInput').value;
+  if (val) localStorage.setItem('gm_debug_seq', val);
+  else localStorage.removeItem('gm_debug_seq');
+});
+
+// 入力欄を復元
+try {
+  const saved = localStorage.getItem('gm_debug_seq');
+  if (saved) document.getElementById('debugSeqInput').value = saved;
+} catch(e) {}
+
+document.getElementById('btnFireSeq').addEventListener('click', () => {
+  const raw = document.getElementById('debugSeqInput').value;
+  const nums = raw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n >= 1 && n <= 52);
+  if (nums.length === 0) return;
+  closeDrawer();
+  // 通常インターバルを止める
+  if (intervalId) { clearInterval(intervalId); intervalId = null; }
+  // 予告演出がONなら、最初の3個も予告できるよう3秒の助走を入れる
+  const lead = previewEnabled ? FORESHADOW_AHEAD * 1000 : 0;
+  if (lead) for (let j = 0; j < Math.min(FORESHADOW_AHEAD, nums.length); j++) {
+    setTimeout(() => { const k = foreshadowEval(nums.slice(0, j), nums[j]); if (k >= 0) showForeshadow(k); }, j * 1000);
+  }
+  nums.forEach((n, i) => {
+    setTimeout(() => {
+      accumulateFixed(n);
+      updateDisplay(n);
+      triggerEffect(n);
+      renderBars();
+      document.getElementById('totalCount').textContent = total;
+      document.getElementById('maxSeen').textContent = maxSeen || '—';
+      // 3個先の数字がレアなら予告（通常時と同じ：3秒前）
+      if (previewEnabled && i + FORESHADOW_AHEAD < nums.length) { const k = foreshadowEval(nums.slice(i + 1, i + FORESHADOW_AHEAD), nums[i + FORESHADOW_AHEAD]); if (k >= 0) showForeshadow(k); }
+      // 最後の発火が終わったら再開
+      if (i === nums.length - 1) {
+        setTimeout(() => {
+          intervalId = setInterval(tick, 1000 / tickMultiplier);
+        }, 1000);
+      }
+    }, lead + i * 1000);
+  });
 });
 
 document.getElementById('btnFireNum').addEventListener('click', () => {
@@ -1811,7 +2071,7 @@ function loadState() {
     Object.keys(recentPositions).forEach(k => delete recentPositions[k]);
     Object.assign(recentPositions, data.recentPositions || {});
     if (data.numHistory) {
-      numHistory.length = 0;
+      numHistory.length = 0; upcoming.length = 0;
       // 旧形式（{n,...}）との互換性、かつ数値のみ保持
       data.numHistory.forEach(e => {
         const val = typeof e === 'object' ? e.n : e;
@@ -1846,7 +2106,8 @@ function showElapsed(e) {
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
-  const timeStr = h > 0 ? `${h}時間${m}分${s}秒` : m > 0 ? `${m}分${s}秒` : `${s}秒`;
+  const _u = currentLang.timeUnits || ['時間','分','秒'], _sp = currentLang.timeSep ?? '';
+  const timeStr = (h > 0 ? [h+_u[0], m+_u[1], s+_u[2]] : m > 0 ? [m+_u[1], s+_u[2]] : [s+_u[2]]).join(_sp);
   popup.textContent = timeStr;
   const touch = e.touches ? e.touches[0] : e;
   popup.style.left = '50%';
@@ -1893,6 +2154,37 @@ totalTap.addEventListener('touchend', hideElapsed);
 totalTap.addEventListener('touchcancel', hideElapsed);
 
 const pauseBtn = document.getElementById('pauseBtn');
+
+// スクリーンショット
+document.getElementById('screenshotBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('screenshotBtn');
+  btn.textContent = '⏳';
+  try {
+    // フォントが全部読み込まれるまで待つ
+    await document.fonts.ready;
+    const target = document.querySelector('.wrapper');
+    const canvas = await html2canvas(target, {
+      backgroundColor: null,
+      scale: window.devicePixelRatio || 2,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      onclone: (clonedDoc) => {
+        // クローン内のフォントも読み込む
+        return clonedDoc.fonts.ready;
+      }
+    });
+    document.getElementById('screenshotImg').src = canvas.toDataURL('image/png');
+    document.getElementById('screenshotOverlay').classList.add('visible');
+    btn.textContent = '📷';
+  } catch(e) {
+    console.error(e);
+    btn.textContent = '📷';
+  }
+});
+document.getElementById('screenshotOverlayClose').addEventListener('click', () => {
+  document.getElementById('screenshotOverlay').classList.remove('visible');
+});
 const playbackBar = document.getElementById('playbackBar');
 const historySlider = document.getElementById('historySlider');
 const playbackLabel = document.getElementById('playbackLabel');
@@ -2062,6 +2354,7 @@ function showHistoryAt(idx) {
     document.getElementById('probLabel').textContent = `P = ${frac(n)}`;
     el.style.opacity = '1';
     if (!currentTheme.gentle) triggerEffect(n);
+    playNumberSE(n);
   }, 100);
   const offset = Math.max(0, total - numHistory.length);
   playbackLabel.textContent = `${offset + idx + 1} / ${total}`;
@@ -2144,7 +2437,7 @@ document.getElementById('replayBtn').addEventListener('click', () => {
 });
 
 const theaterHideEls = () => {
-  ['.panel-section', '.meta', '#playbackBar', '#pauseBtn', '#resetBtn', '#menuBtn', '#theaterBtn', '#historyPanel']
+  ['.panel-section', '.meta', '#playbackBar', '#pauseBtn', '#resetBtn', '#menuBtn', '#theaterBtn', '#screenshotBtn', '#historyPanel']
     .forEach(sel => document.querySelectorAll(sel).forEach(el => el.classList.add('theater-hide')));
   document.getElementById('probLabel').classList.add('theater-hide');
   // シアターモード中はロゴをタップ可能に
@@ -2286,6 +2579,7 @@ function showConfirmDialog(msg, onOk) {
   dlg.classList.add('visible');
   const ok = document.getElementById('dlgExitOk');
   const cancel = document.getElementById('dlgExitCancel');
+  cancel.textContent = currentLang.resetCancel || 'キャンセル';
   function cleanup() {
     dlg.classList.remove('visible');
     ok.removeEventListener('click', onClickOk);
@@ -2389,7 +2683,7 @@ document.getElementById('btnImportConfirm').addEventListener('click', () => {
     Object.keys(streakBest).forEach(k => delete streakBest[k]);
     Object.keys(lastSeen).forEach(k => delete lastSeen[k]);
   Object.keys(recentPositions).forEach(k => delete recentPositions[k]);
-    numHistory.length = 0;
+    numHistory.length = 0; upcoming.length = 0;
     if (loadState()) {
       renderBars();
       renderStreak();
@@ -2430,7 +2724,7 @@ function doReset(mode) {
   historyBaseCurCount = 0;
   Object.keys(lastSeen).forEach(k => delete lastSeen[k]);
   Object.keys(recentPositions).forEach(k => delete recentPositions[k]);
-  numHistory.length = 0;
+  numHistory.length = 0; upcoming.length = 0;
   document.getElementById('bigNumber').textContent = '—';
   try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
   document.getElementById('probLabel').textContent = '';
@@ -2464,6 +2758,488 @@ document.addEventListener('touchmove', onBarTouchMove, { passive: true });
 let points = 0;
 let pointsHistory = [];
 let pointsEffectEnabled = false;
+let seEnabled = false;
+let previewEnabled = false;
+let audioCtx = null;
+let masterGain = null;
+let bgmVolume = 50; // BGM専用（50が基準）
+let seVolume = 50; // 0〜100（50が基準の大きさ、100で2倍）
+function getAudio() {
+  try {
+    if (!audioCtx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; audioCtx = new AC(); masterGain = audioCtx.createGain(); masterGain.gain.value = seVolume / 50; masterGain.connect(audioCtx.destination); }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  } catch(e) { return null; }
+}
+function setSEToggle(on) {
+  seEnabled = on;
+  const btn = document.getElementById('toggleSE');
+  if (!btn) return;
+  btn.style.background = on ? 'var(--accent)' : 'var(--mid)';
+  btn.querySelector('span').style.transform = on ? 'translateX(18px)' : 'translateX(0)';
+}
+// レア度に応じた効果音（WebAudioで合成。音源ファイル不要）
+function playTone(ac, t, freq, dur, vol, type) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(masterGain);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+let tickSeEnabled = false;
+let lastTickSeAt = 0;
+function setTickToggle(on) {
+  tickSeEnabled = on;
+  const btn = document.getElementById('toggleTickSE');
+  if (!btn) return;
+  btn.style.background = on ? 'var(--accent)' : 'var(--mid)';
+  btn.querySelector('span').style.transform = on ? 'translateX(18px)' : 'translateX(0)';
+}
+// 数字が出るたびの音：テーマごとの音色 × 数字ごとの音程（大きい数字ほど高い）
+const TICK_SCALE = [0,2,4,7,9];
+const TICK_SCALE_WABI = [0,2,5,7,9];
+function tickSeProfile(id) {
+  switch (id) {
+    case 'cyber':    return { base:440, wave:'square',   vol:0.05, dur:0.09, lp:3000 };
+    case 'wabi':     return { base:294, wave:'triangle', vol:0.16, dur:0.55 };
+    case 'minimal':  return { base:660, wave:'sine',     vol:0.09, dur:0.06 };
+    case 'neon':     return { base:330, wave:'sawtooth', vol:0.06, dur:0.18, lp:2200, det:7 };
+    case 'cafe':     return { base:262, wave:'sine',     vol:0.2,  dur:0.28, h:4.0, hv:0.08 };
+    case 'kawaii':   return { base:880, wave:'sine',     vol:0.12, dur:0.14, glide:1.25 };
+    case 'yasuragi': return { base:392, wave:'sine',     vol:0.1,  dur:0.9,  slow:true };
+    case 'fantasy':  return { base:294, wave:'sine',     vol:0.12, dur:0.8 };
+    default:         return { base:523, wave:'sine',     vol:0.1,  dur:0.15 };
+  }
+}
+// 和風：琴をはじいたような音（非整数倍音＋弾く瞬間の微小なピッチ下降＋ごく短い撥音ノイズ）
+function playKotoPluck(ac, t, f, dest, vs) {
+  vs = vs || 1; dest = dest || masterGain;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.2 * vs, t + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+  g.connect(dest);
+  [[1,1],[2.01,0.45],[3.02,0.22],[4.18,0.1]].forEach(([m,a],i) => {
+    const o = ac.createOscillator(), og = ac.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(f * m * 1.02, t);
+    o.frequency.exponentialRampToValueAtTime(f * m, t + 0.05);
+    og.gain.setValueAtTime(a, t);
+    og.gain.exponentialRampToValueAtTime(0.001, t + 1.1 / (1 + i * 0.8));
+    o.connect(og); og.connect(g); o.start(t); o.stop(t + 1.2);
+  });
+  const len = Math.floor(ac.sampleRate * 0.03);
+  const buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const ns = ac.createBufferSource(); ns.buffer = buf;
+  const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2200; bp.Q.value = 1.2;
+  const ng = ac.createGain(); ng.gain.value = 0.08 * vs;
+  ns.connect(bp); bp.connect(ng); ng.connect(dest); ns.start(t);
+}
+// ファンタジー：中世の笛/角笛のような「ふぁーん」。完全5度の重ね（中世風の空虚5度）＋ゆるいビブラート＋柔らかい立ち上がり
+function playMedievalHorn(ac, t, f) {
+  const g = ac.createGain();
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.13, t + 0.07);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3);
+  g.connect(lp); lp.connect(masterGain);
+  const lfo = ac.createOscillator(), lg = ac.createGain();
+  lfo.frequency.value = 5; lg.gain.value = f * 0.006;
+  lfo.connect(lg); lfo.start(t); lfo.stop(t + 1.4);
+  [[f, 'triangle', 1], [f * 1.5, 'sine', 0.6], [f * 2, 'sine', 0.3]].forEach(([fr, type, a]) => {
+    const o = ac.createOscillator(), og = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(fr * 0.985, t);
+    o.frequency.exponentialRampToValueAtTime(fr, t + 0.09);
+    og.gain.value = a;
+    lg.connect(o.frequency);
+    o.connect(og); og.connect(g); o.start(t); o.stop(t + 1.4);
+  });
+}
+// 和太鼓：低く丸い「ドン」（ピッチが一気に下がる胴の音＋皮を叩くごく短い打撃音）
+function playWadaiko(ac, t) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(190, t); o.frequency.exponentialRampToValueAtTime(62, t + 0.18);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.4, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+  o.connect(g); g.connect(masterGain); o.start(t); o.stop(t + 0.6);
+  const len = Math.floor(ac.sampleRate * 0.04), buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const ns = ac.createBufferSource(); ns.buffer = buf;
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+  const ng = ac.createGain(); ng.gain.value = 0.18;
+  ns.connect(lp); lp.connect(ng); ng.connect(masterGain); ns.start(t);
+}
+function playNumberSE(n) {
+  if (!tickSeEnabled) return;
+  const now = performance.now();
+  if (now - lastTickSeAt < 70) return; // 高速時の鳴りすぎ防止
+  lastTickSeAt = now;
+  const ac = getAudio(); if (!ac) return;
+  const p = tickSeProfile(currentTheme.id);
+  const f = p.base; // 数字によらず一定の音程
+  const t = ac.currentTime + 0.01;
+  if (currentTheme.id === 'wabi') { playWadaiko(ac, t); return; }
+  if (currentTheme.id === 'fantasy') { playMedievalHorn(ac, t, f); return; }
+  const g = ac.createGain();
+  let out = g;
+  if (p.lp) { const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = p.lp; g.connect(lp); out = lp; }
+  out.connect(masterGain);
+  const atk = p.slow ? 0.12 : 0.008;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(p.vol, t + atk);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + p.dur);
+  const mk = (freq, type, detune) => {
+    const o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (p.glide) o.frequency.exponentialRampToValueAtTime(freq * p.glide, t + p.dur * 0.6);
+    if (detune) o.detune.value = detune;
+    o.connect(g); o.start(t); o.stop(t + p.dur + 0.05);
+  };
+  mk(f, p.wave, 0);
+  if (p.det) mk(f, p.wave, p.det);
+  if (p.h) {
+    const o = ac.createOscillator(), hg = ac.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(f * p.h, t);
+    hg.gain.setValueAtTime(p.hv / p.vol, t); hg.gain.exponentialRampToValueAtTime(0.01, t + p.dur * 0.5);
+    o.connect(hg); hg.connect(g); o.start(t); o.stop(t + p.dur + 0.05);
+  }
+}
+
+// ───── BGM（WebAudioで自動生成。テーマごとに曲調が違う） ─────
+let bgmEnabled = false, bgmBus = null, bgmTimer = null, bgmNext = 0, bgmBar = 0, kawaiiIdx = 2;
+const nf = (root, semi) => root * Math.pow(2, semi / 12);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function bgmTone(ac, t, f, dur, vol, type, o) {
+  o = o || {};
+  const g = ac.createGain(); let out = g;
+  if (o.lp) { const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = o.lp; g.connect(lp); out = lp; }
+  out.connect(o.dest || bgmBus);
+  const atk = o.atk || 0.005;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + atk);
+  if (o.sus) g.gain.setValueAtTime(vol, t + Math.max(atk, dur - o.sus));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  const mk = (fr, ty, a, det) => {
+    const os = ac.createOscillator(); os.type = ty; os.frequency.value = fr; if (det) os.detune.value = det;
+    if (a !== 1) { const ag = ac.createGain(); ag.gain.value = a; os.connect(ag); ag.connect(g); } else os.connect(g);
+    os.start(t); os.stop(t + dur + 0.05);
+  };
+  mk(f, type, 1, 0);
+  if (o.det) mk(f, type, 1, o.det);
+  if (o.h) mk(f * o.h, 'sine', o.hv || 0.3, 0);
+}
+const BGM_THEMES = {
+  // サイバー：アルペジオ＋ベース（Am F C G）
+  cyber: { bpm: 112, bar(ac, t, i, spb) {
+    const ch = [[0,3,7],[-4,0,3],[3,7,10],[-2,2,5]][i % 4], R = 110;
+    for (let k = 0; k < 8; k++) bgmTone(ac, t + k*spb/2, nf(R, ch[0]), spb*0.4, 0.07, 'sawtooth', { lp: 500 });
+    for (let k = 0; k < 16; k++) bgmTone(ac, t + k*spb/4, nf(R, ch[k % 4 === 3 ? 1 : k % 3] + 12 * (1 + ((k >> 2) & 1))), spb*0.2, 0.035, 'square', { lp: 2600 });
+  }},
+  // 和風（寺社）：梵鐘のゆったりした響き＋木魚＋低いドローン＋ときどき尺八風の笛
+  wabi: { bpm: 52, bar(ac, t, i, spb) {
+    // 低いドローン（2小節ごと）
+    if (i % 2 === 0) { bgmTone(ac, t, nf(73.4, 0), spb*8+0.5, 0.07, 'sine', { atk: 2, sus: 2.5 }); bgmTone(ac, t, nf(73.4, 7), spb*8+0.5, 0.035, 'sine', { atk: 2, sus: 2.5 }); }
+    // 梵鐘：非整数倍音をゆっくり減衰させる（4小節に1回、深く）
+    if (i % 4 === 0) {
+      [[1,0.5,7],[2.0,0.3,5],[2.76,0.22,3.5],[4.1,0.1,2],[5.4,0.07,1.2]].forEach(([m,a,d]) => bgmTone(ac, t, 110 * m, d + 1, 0.16 * a, 'sine', { atk: 0.01 }));
+      bgmTone(ac, t, 110.8, 6, 0.05, 'sine', { atk: 0.01 }); // うなり
+    }
+    // 木魚：丸い短い音を一定の拍で
+    for (let k = 0; k < 4; k++) {
+      const tt = t + k * spb, vol = k === 0 ? 0.11 : 0.07;
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(620, tt); o.frequency.exponentialRampToValueAtTime(380, tt + 0.07);
+      g.gain.setValueAtTime(0.0001, tt); g.gain.exponentialRampToValueAtTime(vol, tt + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, tt + 0.16);
+      o.connect(g); g.connect(bgmBus); o.start(tt); o.stop(tt + 0.2);
+    }
+    // 尺八風の笛：息の混じった長い音（低確率）
+    if (Math.random() < 0.4) {
+      const f = nf(294, pick([0,3,5,7,10])), tt = t + pick([0,1,2]) * spb, d = spb * 3;
+      bgmTone(ac, tt, f, d, 0.05, 'triangle', { atk: 0.35, sus: 1.2, lp: 1600 });
+      const len = Math.floor(ac.sampleRate * d), buf = ac.createBuffer(1, len, ac.sampleRate), dd = buf.getChannelData(0);
+      for (let n = 0; n < len; n++) dd[n] = Math.random() * 2 - 1;
+      const ns = ac.createBufferSource(); ns.buffer = buf;
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * 2; bp.Q.value = 3;
+      const ng = ac.createGain();
+      ng.gain.setValueAtTime(0.0001, tt); ng.gain.exponentialRampToValueAtTime(0.03, tt + 0.35); ng.gain.exponentialRampToValueAtTime(0.0001, tt + d);
+      ns.connect(bp); bp.connect(ng); ng.connect(bgmBus); ns.start(tt);
+    }
+  }},
+  // ミニマル：静かなピアノ風の単音＋薄いパッド
+  minimal: { bpm: 66, bar(ac, t, i, spb) {
+    [0,2].forEach(b => { if (Math.random() < 0.8) bgmTone(ac, t + b*spb + Math.random()*0.05, nf(523, pick([0,2,4,7,9]) + (Math.random() < 0.4 ? 12 : 0)), spb*3, 0.05, 'sine', { h: 2, hv: 0.15 }); });
+    [0,7].forEach(s => bgmTone(ac, t, nf(262, s), spb*4+0.3, 0.025, 'sine', { atk: 0.8, sus: 1 }));
+  }},
+  // ネオン：シンセウェーブ（パッド＋アルペジオ＋ベース）
+  neon: { bpm: 118, bar(ac, t, i, spb) {
+    const ch = [[0,3,7],[-2,2,5],[-4,0,3],[-2,2,5]][i % 4], R = 110;
+    ch.forEach(s => bgmTone(ac, t, nf(R, s + 12), spb*4, 0.022, 'sawtooth', { lp: 1100, atk: 0.25, sus: 1, det: 8 }));
+    const ar = [0,1,2,1,0,1,2,1];
+    for (let k = 0; k < 8; k++) {
+      bgmTone(ac, t + k*spb/2, nf(R, ch[ar[k]] + 12 * (k > 3 ? 3 : 2)), spb*0.4, 0.04, 'sawtooth', { lp: 2200, det: 6 });
+      bgmTone(ac, t + k*spb/2, nf(R, ch[0]), spb*0.35, 0.07, 'sawtooth', { lp: 400 });
+    }
+  }},
+  // カフェ：ジャズ風のエレピ（Dm7 G7 Cmaj7 Am7）＋ベース＋ゆるい旋律
+  cafe: { bpm: 84, bar(ac, t, i, spb) {
+    const n = i % 4, R = 131;
+    const ch = [[2,5,9,12],[7,11,14,17],[0,4,7,11],[-3,0,4,7]][n], root = [2,7,0,-3][n];
+    [[0,2.2],[2.6,1.4]].forEach(([b,d]) => ch.forEach(s => bgmTone(ac, t + b*spb, nf(R, s + 12), spb*d, 0.035, 'sine', { h: 4, hv: 0.12, atk: 0.01 })));
+    [0,2].forEach(b => bgmTone(ac, t + b*spb, nf(R, root - 12 + 12), spb*1.6, 0.1, 'sine'));
+    [1,3].forEach(b => { if (Math.random() < 0.6) bgmTone(ac, t + b*spb + 0.1, nf(R, pick([0,2,4,7,9]) + 24), spb*1.2, 0.04, 'triangle', { h: 2, hv: 0.2 }); });
+  }},
+  // かわいい：オルゴール風のはねる旋律＋ぽこぽこベース
+  kawaii: { bpm: 124, bar(ac, t, i, spb) {
+    const pent = [0,2,4,7,9,12], root = [0,-5,-3,-7][i % 4];
+    for (let k = 0; k < 8; k++) {
+      kawaiiIdx = Math.min(5, Math.max(0, kawaiiIdx + pick([-1,1,2,-2,0])));
+      if (Math.random() < 0.85) bgmTone(ac, t + k*spb/2, nf(523, pent[kawaiiIdx] + 12), 0.45, 0.05, 'sine', { h: 4, hv: 0.15 });
+    }
+    [0,2].forEach(b => bgmTone(ac, t + b*spb, nf(131, root + 12), spb*0.5, 0.09, 'triangle', { lp: 600 }));
+  }},
+  // やすらぎ：ゆっくり膨らむパッド＋まばらな鈴
+  yasuragi: { bpm: 46, bar(ac, t, i, spb) {
+    const ch = [[0,4,7,14],[-3,0,4,9],[-7,-3,0,4],[-5,-1,2,7]][i % 4];
+    ch.forEach(s => bgmTone(ac, t, nf(262, s), spb*4+0.5, 0.03, 'sine', { atk: 1.4, sus: 1.6 }));
+    if (Math.random() < 0.7) bgmTone(ac, t + Math.random()*spb*3, nf(523, pick([0,2,4,7,9])), spb*3, 0.04, 'sine', { h: 2.76, hv: 0.2 });
+  }},
+  // ファンタジー：ドリア旋法の竪琴アルペジオ＋空虚5度のパッド
+  fantasy: { bpm: 80, bar(ac, t, i, spb) {
+    const root = [0,-2,-4,-2][i % 4], dor = [0,2,3,5,7,9,10,12], R = 147;
+    [0,7,12].forEach(s => bgmTone(ac, t, nf(R, root + s), spb*4+0.4, 0.03, 'triangle', { lp: 1100, atk: 0.6, sus: 1 }));
+    const path = [0,2,4,6,7,6,4,2];
+    for (let k = 0; k < 8; k++) if (Math.random() < 0.85) bgmTone(ac, t + k*spb/2, nf(R, root + dor[path[k]] + 12), spb*1.4, 0.045, 'triangle', { h: 3, hv: 0.2, lp: 3000 });
+  }},
+};
+function bgmPump() {
+  const ac = audioCtx; if (!ac || !bgmBus) return;
+  const cfg = BGM_THEMES[currentTheme.id] || BGM_THEMES.minimal;
+  const spb = 60 / cfg.bpm;
+  while (bgmNext < ac.currentTime + 1.2) { try { cfg.bar(ac, bgmNext, bgmBar, spb); } catch(e) {} bgmNext += spb * 4; bgmBar++; }
+}
+function stopBGM() {
+  clearInterval(bgmTimer); bgmTimer = null;
+  if (bgmBus && audioCtx) {
+    const b = bgmBus; bgmBus = null;
+    try { b.gain.cancelScheduledValues(audioCtx.currentTime); b.gain.setValueAtTime(b.gain.value, audioCtx.currentTime); b.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4); } catch(e) {}
+    setTimeout(() => { try { b.disconnect(); } catch(e) {} }, 600);
+  }
+}
+function startBGM() {
+  stopBGM();
+  if (!bgmEnabled) return;
+  const ac = getAudio(); if (!ac) return;
+  bgmBus = ac.createGain(); bgmBus.gain.value = 0.5 * bgmVolume / 50; bgmBus.connect(ac.destination);
+  bgmNext = ac.currentTime + 0.15; bgmBar = 0;
+  bgmTimer = setInterval(bgmPump, 200); bgmPump();
+}
+function setBgmToggle(on) {
+  bgmEnabled = on;
+  const btn = document.getElementById('toggleBGM'); if (!btn) return;
+  btn.style.background = on ? 'var(--accent)' : 'var(--mid)';
+  btn.querySelector('span').style.transform = on ? 'translateX(18px)' : 'translateX(0)';
+}
+document.addEventListener('visibilitychange', () => {
+  if (!audioCtx) return;
+  try { if (document.hidden) audioCtx.suspend(); else audioCtx.resume(); } catch(e) {}
+});
+// 保存済みでBGM ONの場合、最初のタップで音声を解禁する（iOS対策）
+// iOSはタップの「離した瞬間」でしか音声を解禁できないため、click/touchendで解禁する（効果音・数字音・BGMのどれかがONの時）
+['click', 'touchend', 'pointerup'].forEach(ev => document.addEventListener(ev, () => {
+  if ((bgmEnabled || seEnabled || tickSeEnabled) && (!audioCtx || audioCtx.state !== 'running')) getAudio();
+}, { passive: true, capture: true }));
+// ───── レア度の効果音（テーマ別・6段階） ─────
+// 段階：0=7〜8 / 1=8〜9 / 2=9〜10 / 3=10〜12 / 4=12〜15 / 5=15〜
+function rarityTier(ar) { return ar >= 15 ? 5 : ar >= 12 ? 4 : ar >= 10 ? 3 : ar >= 9 ? 2 : ar >= 8 ? 1 : 0; }
+const SE_TIER_N = [1,2,3,4,6,8], SE_TIER_V = [0.7,0.8,0.9,1,1.1,1.2];
+function seTone(ac, t, f, dur, vol, type, o) { bgmTone(ac, t, f, dur, vol, type, Object.assign({}, o, { dest: masterGain })); }
+function seMotif(ac, t, k, base, scale, step, dur, vol, type, o) {
+  const n = SE_TIER_N[k];
+  for (let i = 0; i < n; i++) seTone(ac, t + i*step, nf(base, scale[i % scale.length] + 12 * Math.floor(i / scale.length)), dur, vol * SE_TIER_V[k], type, o);
+}
+function seSweep(ac, t, f0, f1, dur, vol, type, lp) {
+  const o = ac.createOscillator(), g = ac.createGain(), fl = ac.createBiquadFilter();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  fl.type = 'lowpass'; fl.frequency.value = lp || 4000;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(fl); fl.connect(g); g.connect(masterGain); o.start(t); o.stop(t + dur + 0.05);
+}
+function seMokugyo(ac, t, vol) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(620, t); o.frequency.exponentialRampToValueAtTime(380, t + 0.07);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+  o.connect(g); g.connect(masterGain); o.start(t); o.stop(t + 0.2);
+}
+function seRin(ac, t, vol) { [[1,1,2.6],[2.76,0.5,1.8],[5.4,0.25,1]].forEach(([m,a,d]) => seTone(ac, t, 880 * m, d, vol * a, 'sine')); }
+function seBell(ac, t, vol) { [[1,0.5,6],[2.0,0.3,4],[2.76,0.22,3],[4.1,0.1,1.8]].forEach(([m,a,d]) => seTone(ac, t, 110 * m, d, vol * a * 2, 'sine')); }
+function seTaiko(ac, t, vol) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.3);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+  o.connect(g); g.connect(masterGain); o.start(t); o.stop(t + 0.8);
+}
+const SEFX = {
+  cyber(ac, t, k) {
+    seMotif(ac, t, k, 440, [0,4,7,12,16,19,24,28], 0.06, 0.14, 0.07, 'square', { lp: 3200 });
+    if (k >= 3) seSweep(ac, t, 200, 1800, 0.45, 0.05, 'sawtooth', 2500);
+    if (k >= 5) seTone(ac, t + 0.1, 55, 1.2, 0.25, 'sine');
+  },
+  wabi(ac, t, k) {
+    if (k === 0) seMokugyo(ac, t, 0.2);
+    else if (k === 1) { seMokugyo(ac, t, 0.2); seMokugyo(ac, t + 0.18, 0.2); }
+    else if (k === 2) seRin(ac, t, 0.12);
+    else if (k === 3) { seRin(ac, t, 0.12); playKotoPluck(ac, t + 0.3, 294, masterGain, 1); }
+    else if (k === 4) { seBell(ac, t, 0.18); seRin(ac, t + 0.5, 0.1); }
+    else { seTaiko(ac, t, 0.4); seBell(ac, t + 0.1, 0.22); seTaiko(ac, t + 0.35, 0.35); seRin(ac, t + 0.8, 0.12); }
+  },
+  minimal(ac, t, k) {
+    seMotif(ac, t, k, 659, [0,2,4,7,9,12,14,16], 0.11, 0.5, 0.1, 'sine', { h: 2, hv: 0.15 });
+    if (k >= 5) [0,4,7,12].forEach(s => seTone(ac, t + 0.9, nf(330, s), 2, 0.05, 'sine', { atk: 0.05 }));
+  },
+  neon(ac, t, k) {
+    seMotif(ac, t, k, 220, [0,4,7,12,16,19,24,28], 0.07, 0.25, 0.07, 'sawtooth', { lp: 2600, det: 8 });
+    if (k >= 3) seSweep(ac, t, 150, 1400, 0.4, 0.04, 'sawtooth', 2200);
+    if (k >= 5) [0,4,7,12].forEach(s => seTone(ac, t + 0.5, nf(220, s), 1.5, 0.06, 'sawtooth', { lp: 2000, det: 8, atk: 0.02 }));
+  },
+  cafe(ac, t, k) {
+    if (k <= 1) seTone(ac, t, 2093, 0.5, 0.05, 'sine', { h: 1.5, hv: 0.3 });
+    seMotif(ac, t, k, 523, [0,4,7,11,14,16,19,23], 0.09, 0.7, 0.09, 'sine', { h: 4, hv: 0.12, atk: 0.01 });
+    if (k >= 4) [0,4,7,11].forEach(s => seTone(ac, t + 0.7, nf(262, s), 1.6, 0.05, 'sine', { h: 4, hv: 0.12 }));
+  },
+  kawaii(ac, t, k) {
+    seMotif(ac, t, k, 784, [0,2,4,7,9,12,14,16], 0.07, 0.35, 0.07, 'sine', { h: 4, hv: 0.15 });
+    if (k >= 3) seSweep(ac, t, 600, 1600, 0.12, 0.05, 'sine', 5000);
+    if (k >= 5) for (let i = 0; i < 6; i++) seTone(ac, t + 0.5 + i*0.06, nf(1568, pick([0,2,4,7,9])), 0.3, 0.04, 'sine', { h: 4, hv: 0.15 });
+  },
+  yasuragi(ac, t, k) {
+    seMotif(ac, t, k, 392, [0,4,7,9,12,16,19,21], 0.28, 2.2, 0.07, 'sine', { h: 2.76, hv: 0.22, atk: 0.01 });
+    if (k >= 5) [0,4,7,14].forEach(s => seTone(ac, t + 1, nf(262, s), 3, 0.04, 'sine', { atk: 0.8, sus: 1.2 }));
+  },
+  fantasy(ac, t, k) {
+    seMotif(ac, t, k, 294, [0,2,3,5,7,9,10,12], 0.06, 0.9, 0.06, 'triangle', { h: 3, hv: 0.2, lp: 3500 });
+    if (k >= 3) { seTone(ac, t + 0.1, nf(147, 0), 1.3, 0.07, 'triangle', { atk: 0.08, lp: 1500, sus: 0.6 }); seTone(ac, t + 0.1, nf(147, 7), 1.3, 0.05, 'triangle', { atk: 0.08, lp: 1500, sus: 0.6 }); }
+    if (k >= 5) { seTone(ac, t + 0.6, nf(294, 0), 1.5, 0.06, 'triangle', { atk: 0.1, lp: 1800, sus: 0.7 }); [12,16,19,24].forEach((s,i) => seTone(ac, t + 0.7 + i*0.07, nf(294, s), 0.8, 0.04, 'sine', { h: 3, hv: 0.2 })); }
+  },
+};
+// 効果音は「数字そのもののレア度」（getLevel 1〜6 → 段階0〜5）に対応
+function playTierSE(k) {
+  if (!seEnabled) return;
+  const ac = getAudio(); if (!ac) return;
+  const fx = SEFX[currentTheme.id] || SEFX.minimal;
+  try { fx(ac, ac.currentTime + 0.02, k); } catch(e) {}
+}
+
+// ───── ポイント獲得の効果音（テーマ別・6段階）。数字の効果音と重ならんよう少し遅らせて鳴らす ─────
+const PT_N = [2,3,4,5,6,7];
+const PTFX_CFG = {
+  cyber:    { base:880,  scale:[0,5,7,12,17,19,24], type:'square',   o:{ lp:3500 },                 step:0.05, dur:0.16, vol:0.06 },
+  minimal:  { base:988,  scale:[0,7,12,16,19,24,28], type:'sine',     o:{ h:2, hv:0.12 },            step:0.12, dur:0.6,  vol:0.07 },
+  neon:     { base:440,  scale:[0,4,7,12,16,19,24], type:'sawtooth', o:{ lp:2400, det:8 },          step:0.05, dur:0.3,  vol:0.06 },
+  cafe:     { base:880,  scale:[0,4,7,11,14,16,19], type:'sine',     o:{ h:4, hv:0.12, atk:0.01 },  step:0.08, dur:0.9,  vol:0.06 },
+  kawaii:   { base:1047, scale:[0,2,4,7,9,12,14],   type:'sine',     o:{ h:4, hv:0.15 },            step:0.06, dur:0.4,  vol:0.06 },
+  yasuragi: { base:523,  scale:[0,4,7,12,16,19,24], type:'sine',     o:{ h:2.76, hv:0.22 },         step:0.22, dur:2.4,  vol:0.06 },
+  fantasy:  { base:523,  scale:[0,2,4,7,9,11,12],   type:'triangle', o:{ h:3, hv:0.2, lp:4000 },    step:0.06, dur:1.0,  vol:0.06 },
+};
+function playPointSE(r) {
+  if (!seEnabled) return;
+  const ac = getAudio(); if (!ac) return;
+  const k = rarityTier(Math.abs(r)), t = ac.currentTime + 0.37;
+  try {
+    if (currentTheme.id === 'wabi') {
+      // 和風：鈴を重ねる → 高い段階では梵鐘と太鼓
+      seRin(ac, t, 0.09);
+      if (k >= 1) seRin(ac, t + 0.22, 0.09);
+      if (k >= 2) seRin(ac, t + 0.44, 0.1);
+      if (k >= 3) seMokugyo(ac, t + 0.1, 0.18);
+      if (k >= 4) seBell(ac, t + 0.5, 0.16);
+      if (k >= 5) { seTaiko(ac, t + 0.2, 0.35); seTaiko(ac, t + 0.5, 0.3); }
+      return;
+    }
+    const c = PTFX_CFG[currentTheme.id] || PTFX_CFG.minimal, n = PT_N[k];
+    for (let i = 0; i < n; i++) {
+      const last = i === n - 1;
+      seTone(ac, t + i * c.step, nf(c.base, c.scale[i] + (last && k >= 3 ? 12 : 0)), last ? c.dur * 1.6 : c.dur, c.vol * (last ? 1.4 : 1), c.type, c.o);
+    }
+    if (currentTheme.id === 'cyber' && k >= 4) seSweep(ac, t, 400, 2400, 0.4, 0.04, 'sawtooth', 3000);
+    if (currentTheme.id === 'neon' && k >= 4) [0,4,7,12].forEach(s => seTone(ac, t + n * c.step, nf(220, s), 1.4, 0.05, 'sawtooth', { lp: 2000, det: 8, atk: 0.02 }));
+    if (currentTheme.id === 'kawaii' && k >= 4) for (let i = 0; i < 5; i++) seTone(ac, t + 0.4 + i * 0.05, nf(1568, pick([0,2,4,7,9])), 0.3, 0.035, 'sine', { h: 4, hv: 0.15 });
+    if (currentTheme.id === 'fantasy' && k >= 4) { seTone(ac, t, nf(147, 0), 1.4, 0.06, 'triangle', { atk: 0.08, lp: 1500, sus: 0.6 }); seTone(ac, t, nf(147, 7), 1.4, 0.04, 'triangle', { atk: 0.08, lp: 1500, sus: 0.6 }); }
+  } catch(e) {}
+}
+
+// ───── 予告演出：3秒先（通常速度で3個先）の数字がレアなら「レアの予感…」を出す ─────
+function setPreviewToggle(on) {
+  previewEnabled = on;
+  const btn = document.getElementById('togglePreview'); if (!btn) return;
+  btn.style.background = on ? 'var(--accent)' : 'var(--mid)';
+  btn.querySelector('span').style.transform = on ? 'translateX(18px)' : 'translateX(0)';
+}
+function peekUpcoming(j) {
+  if (gameMode === 'binary') { const t = total + 1 + j; let n = 1; while ((t & (1 << (n-1))) === 0) n++; return n; }
+  while (upcoming.length <= j) upcoming.push(sample());
+  return upcoming[j];
+}
+// 3個先の数字が、到着時にどれだけレアか（addPointsと同じ判定を先読みで再現）。戻り値：予告の強さ 0〜5、なければ -1
+const FORESHADOW_AHEAD = 5; // 何個（＝通常速度で何秒）先を予告するか
+function foreshadowTier() {
+  const seq = []; for (let j = 0; j < FORESHADOW_AHEAD; j++) seq.push(peekUpcoming(j));
+  return foreshadowEval(seq.slice(0, FORESHADOW_AHEAD - 1), seq[FORESHADOW_AHEAD - 1]);
+}
+// before：n より前に出る数字（順番通り）。n が到着した時のレア度を、本番(addPoints)と同じ判定で再現する
+function foreshadowEval(before, n) {
+  const totalF = total + before.length + 1;
+  let sn = curStreakNum, sc = curStreakCount;
+  before.concat([n]).forEach(x => { if (x === sn) sc++; else { sn = x; sc = 1; } });
+  let prev = lastSeen[n];
+  before.forEach((x, j) => { if (x === n) prev = total + 1 + j; });
+  const interval = prev !== undefined ? totalF - prev : totalF;
+  let maxR = 0;
+  if (interval === 1) { if (sc >= 2) maxR = calcStreakRarity(n, sc); }
+  else maxR = Math.max(calcIntervalRarity(n, interval), calcIntervalRarity(n, 1));
+  if (sc >= 2 && interval !== 1) maxR = Math.max(maxR, calcStreakRarity(n, sc));
+  const kr = maxR >= 7 ? rarityTier(Math.abs(maxR)) : -1;
+  return kr; // ポイントが入るレア度（7以上）のときだけ予告する。数字の大きさだけでは予告しない
+}
+function checkForeshadow() {
+  if (!previewEnabled || isPaused) return;
+  const k = foreshadowTier();
+  if (k >= 0) showForeshadow(k);
+}
+function showForeshadow(k) {
+  const el = document.getElementById('foreshadow'); if (!el) return;
+  el.textContent = currentLang.foreshadowMsg || 'レアの予感…';
+  el.style.fontSize = [14,15,16,18,20,22][k] + 'px';
+  el.style.color = ['var(--fg)','var(--accent)','#ff8c00','#ffd700','#ffd700','#ffffff'][k];
+  el.style.textShadow = k >= 3 ? '0 0 12px currentColor' : 'none';
+  el.style.animation = 'none'; void el.offsetWidth;
+  el.style.animation = 'foreshadowAnim 4.5s ease-in-out forwards';
+  playForeshadowSE(k);
+}
+// 予感の音：「リンリン」と鳴る呼び鈴。テーマごとに音色を変え、段階が高いほど繰り返しが増える（よそ見していても気づける音）
+const FORESHADOW_RING = { cyber:1320, wabi:1568, minimal:1568, neon:1319, cafe:1760, kawaii:2093, yasuragi:1175, fantasy:1568 };
+function playForeshadowSE(k) {
+  if (!seEnabled) return;
+  const ac = getAudio(); if (!ac) return;
+  const t = ac.currentTime + 0.02, id = currentTheme.id, f = FORESHADOW_RING[id] || 1568;
+  const pairs = 2 + (k >= 3 ? 1 : 0) + (k >= 5 ? 1 : 0);
+  try {
+    for (let p = 0; p < pairs; p++) for (let i = 0; i < 2; i++) {
+      const tt = t + p * 0.9 + i * 0.17;
+      if (id === 'cyber') seTone(ac, tt, f, 0.12, 0.1, 'square', { lp: 4000 });
+      else if (id === 'wabi') seRin(ac, tt, 0.16);
+      else if (id === 'neon') seTone(ac, tt, f, 0.5, 0.09, 'sawtooth', { lp: 3500, det: 8 });
+      else [[1,1,1.1],[2.76,0.5,0.7],[5.4,0.2,0.4]].forEach(([m,a,d]) => seTone(ac, tt, f * m, d, 0.13 * a, 'sine'));
+    }
+  } catch(e) {}
+}
+document.getElementById('togglePreview').addEventListener('click', () => {
+  setPreviewToggle(!previewEnabled);
+  upcoming.length = 0;
+  savePoints();
+});
+function playRaritySE(r) { playTierSE(rarityTier(Math.abs(r))); } // 試聴用
 let pointsEffectTimer = null;
 const POINTS_KEY = 'geominary_points';
 const POINTS_FAV_KEY = 'geominary_points_fav';
@@ -2490,6 +3266,12 @@ function loadPoints() {
       points = data.points || 0;
       pointsHistory = data.history || [];
       document.getElementById('pointsDisplay').textContent = points.toLocaleString();
+      if (data.seEnabled === true) { setSEToggle(true); }
+      if (data.tickSeEnabled === true) { setTickToggle(true); }
+      if (typeof data.bgmVolume === 'number') { bgmVolume = data.bgmVolume; const sb = document.getElementById('bgmVolume'); if (sb) sb.value = bgmVolume; }
+      if (data.previewEnabled === true) { setPreviewToggle(true); }
+      if (data.bgmEnabled === true) { setBgmToggle(true); startBGM(); }
+      if (typeof data.seVolume === 'number') { seVolume = data.seVolume; const sl = document.getElementById('seVolume'); if (sl) sl.value = seVolume; }
       if (data.effectEnabled === true) {
         pointsEffectEnabled = true;
         const btn = document.getElementById('togglePointsEffect');
@@ -2504,7 +3286,7 @@ function loadPoints() {
 
 function savePoints() {
   try {
-    localStorage.setItem(POINTS_KEY, JSON.stringify({ points, history: pointsHistory, effectEnabled: pointsEffectEnabled }));
+    localStorage.setItem(POINTS_KEY, JSON.stringify({ points, history: pointsHistory, effectEnabled: pointsEffectEnabled, seEnabled, tickSeEnabled, seVolume, bgmVolume, bgmEnabled, previewEnabled }));
   } catch(e) {}
 }
 
@@ -2523,6 +3305,7 @@ function calcStreakRarity(n, streak) {
 }
 
 function showPointsEffect(pts, r, label) {
+  playPointSE(r);
   if (!pointsEffectEnabled) return;
   const el = document.getElementById('pointsEffect');
   if (!el) return;
@@ -2530,8 +3313,9 @@ function showPointsEffect(pts, r, label) {
   el.style.animation = 'none';
   void el.offsetWidth;
 
-  const size = Math.abs(r) >= 10 ? 32 : Math.abs(r) >= 9 ? 26 : Math.abs(r) >= 8 ? 22 : 18;
-  const color = Math.abs(r) >= 10 ? '#ffd700' : Math.abs(r) >= 9 ? '#ff8c00' : Math.abs(r) >= 8 ? 'var(--accent)' : 'var(--fg)';
+  const tk = rarityTier(Math.abs(r));
+  const size = [18,22,26,30,34,38][tk];
+  const color = ['var(--fg)','var(--accent)','#ff8c00','#ffd700','#ffd700','#ffffff'][tk];
   el.style.fontSize = `${size}px`;
   el.style.color = color;
   const text = label ? `${label} +${pts.toLocaleString()}pt` : `+${pts.toLocaleString()} pt`;
@@ -2541,21 +3325,72 @@ function showPointsEffect(pts, r, label) {
     pointsEffectTimer = setTimeout(() => { el.style.animation = 'none'; }, 1900);
   });
 
-  // レア度に応じたキラキラ演出
-  const ar = Math.abs(r); // 絶対値で判定
-  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00ffcc';
-  const sparkCount = ar >= 10 ? 12 : ar >= 9 ? 8 : ar >= 8 ? 5 : 3;
-  const sparkSize = ar >= 10 ? 28 : ar >= 9 ? 20 : ar >= 8 ? 14 : 9;
-  const colors = ar >= 10 ? ['#ffd700','#fff','#ffaa00'] : ar >= 9 ? ['#ff8c00','#fff','#ffcc00'] : [accentColor, '#fff'];
-  for (let i = 0; i < sparkCount; i++) {
-    const ox = (Math.random()-0.5) * (ar >= 10 ? 180 : ar >= 9 ? 140 : ar >= 8 ? 100 : 60);
-    const oy = (Math.random()-0.5) * (ar >= 10 ? 180 : ar >= 9 ? 140 : ar >= 8 ? 100 : 60);
-    const size = sparkSize * (0.5 + Math.random() * 0.8);
-    const color = colors[i % colors.length];
-    setTimeout(() => effects.push(new Sparkle(cx()+ox, cy()+oy, size, color)), i * (ar >= 10 ? 60 : 80));
-  }
-  if (ar >= 10) flashScreen(accentColor, 0.2, 80);
+  // テーマ別・レア度6段階の演出
+  const k = rarityTier(Math.abs(r));
+  try { (VFX[currentTheme.id] || VFX.minimal)(k); } catch(e) {}
 }
+
+// ───── ポイント演出（テーマ別） ─────
+function vfxBurst(n, o) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, sp = o.sp[0] + Math.random() * (o.sp[1] - o.sp[0]);
+    effects.push(new Particle(cx() + (Math.random()-0.5) * (o.spread || 0), cy() + (Math.random()-0.5) * (o.spread || 0), {
+      vx: Math.cos(a) * sp * (o.xs || 1), vy: Math.sin(a) * sp + (o.vy || 0),
+      size: o.size[0] + Math.random() * (o.size[1] - o.size[0]), color: o.colors[i % o.colors.length],
+      shape: Array.isArray(o.shape) ? pick(o.shape) : o.shape, decay: o.decay, gravity: o.gravity,
+    }));
+  }
+}
+function vfxRings(n, color, maxR, gap) { for (let i = 0; i < n; i++) setTimeout(() => effects.push(new RingBurst(cx(), cy(), color, maxR + i * 40)), i * (gap || 100)); }
+const VFX = {
+  cyber(k) {
+    const c = getAccent();
+    vfxRings(k + 1, c, 100, 90);
+    vfxBurst(8 + k * 6, { sp: [3, 8], size: [3, 6], colors: [c, '#ffffff', '#00e5ff'], shape: 'spark', decay: 0.03, gravity: 0 });
+    if (k >= 3) flashScreen(c, 0.25, 150);
+    if (k >= 5) shakeScreen(8, 400);
+  },
+  wabi(k) {
+    vfxBurst(6 + k * 5, { sp: [0.5, 2.5], size: [4, 8], colors: ['#ffb7c5', '#ffd9e2', '#ffffff'], shape: 'petal', decay: 0.008, gravity: 0.03, spread: 160, vy: -0.5 });
+    if (k >= 2) vfxRings(k - 1, '#ffd700', 140, 350);
+    if (k >= 4) shakeScreen(5, 500);
+    if (k >= 5) flashScreen('#ffd700', 0.25, 400);
+  },
+  minimal(k) {
+    const c = getAccent();
+    vfxRings(k + 1, k >= 3 ? c : 'rgba(255,255,255,0.8)', 80, 140);
+    if (k >= 5) flashScreen('#ffffff', 0.15, 300);
+  },
+  neon(k) {
+    const cols = ['#ff2dff', '#00e5ff', '#ffe600'];
+    vfxBurst(10 + k * 6, { sp: [3, 8], size: [3, 6], colors: cols, shape: ['spark', 'star'], decay: 0.025, gravity: 0.02 });
+    vfxRings(Math.min(k + 1, 3), '#ff2dff', 110, 90);
+    if (k >= 3) flashScreen('#ff2dff', 0.3, 200);
+    if (k >= 5) { shakeScreen(6, 400); launchFirework(cx(), cy(), cols, 50); }
+  },
+  cafe(k) {
+    vfxBurst(6 + k * 4, { sp: [0.3, 1.5], size: [3, 8], colors: ['#ffcc99', '#e07840', '#fff3e0'], shape: 'circle', decay: 0.012, gravity: -0.015, spread: 140, vy: -1.5 });
+    if (k >= 3) vfxBurst(5 + k, { sp: [1, 4], size: [3, 6], colors: ['#ffd700', '#fff'], shape: 'star', decay: 0.02, gravity: 0.05 });
+    if (k >= 5) flashScreen('#e07840', 0.2, 300);
+  },
+  kawaii(k) {
+    vfxBurst(6 + k * 5, { sp: [1.5, 5], size: [6, 12], colors: ['#ff88cc', '#ffb3de', '#ffffff', '#ffd1ea'], shape: 'heart', decay: 0.014, gravity: 0.06, vy: -1.5 });
+    if (k >= 2) vfxBurst(4 + k * 2, { sp: [2, 6], size: [3, 6], colors: ['#ffe066', '#ffffff'], shape: 'star', decay: 0.02, gravity: 0.05 });
+    if (k >= 4) vfxBurst(20, { sp: [2, 7], size: [3, 5], colors: ['#ff88cc', '#88ddff', '#ffe066', '#aaffaa'], shape: 'circle', decay: 0.012, gravity: 0.1 });
+    if (k >= 5) flashScreen('#ff88cc', 0.25, 250);
+  },
+  yasuragi(k) {
+    vfxBurst(5 + k * 3, { sp: [0.2, 0.9], size: [5, 12], colors: ['#7aaa88', '#b6e0c0', '#ffffff'], shape: 'circle', decay: 0.006, gravity: -0.004, spread: 180, vy: -0.5 });
+    if (k >= 2) vfxRings(Math.min(k - 1, 3), getAccent(), 150, 400);
+  },
+  fantasy(k) {
+    const cols = ['#44aaff', '#ffd700', '#ffffff'];
+    for (let i = 0; i < 4 + k * 3; i++) setTimeout(() => effects.push(new Sparkle(cx() + (Math.random()-0.5) * (80 + k * 25), cy() + (Math.random()-0.5) * (80 + k * 25), 10 + k * 4 + Math.random() * 8, cols[i % 3])), i * 70);
+    if (k >= 2) vfxRings(Math.min(k - 1, 3), '#44aaff', 130, 200);
+    if (k >= 4) launchFirework(cx(), cy(), cols, 40);
+    if (k >= 5) { flashScreen('#44aaff', 0.3, 300); shakeScreen(5, 400); }
+  },
+};
 
 function recordAndAddPoints(n, interval, pts, r, label, skipEffect) {
   let sign = '+';
@@ -2613,19 +3448,30 @@ function addPoints(n) {
     }
   }
 
-  // 全種類加算
+  // 全種類加算＋演出キュー
   let totalPts = 0;
-  const r2 = calcIntervalRarity(n, interval);
-  const agoLabel = `${interval.toLocaleString()}${currentLang.pointsAgo || '回ぶり！'}`;
-  if (r2 >= 7) { const pts2 = Math.floor(Math.pow(4, r2 - 7)); totalPts += pts2; recordAndAddPoints(n, interval, pts2, r2, agoLabel, true); }
-  const rb2 = calcIntervalRarity(n, 1);
-  if (rb2 >= 7) { const ptsB2 = Math.floor(Math.pow(4, rb2 - 7)); totalPts += ptsB2; recordAndAddPoints(n, 1, ptsB2, rb2, `P=1/${Math.pow(2,n).toLocaleString()}`, true); }
-  if (curStreakNum === n && curStreakCount >= 2) {
-    const rs2 = calcStreakRarity(n, curStreakCount);
-    const streakLabel = `${curStreakCount}${currentLang.pointsStreak || '連続！'}`;
-    if (rs2 >= 7) { const ptsS2 = Math.floor(Math.pow(4, rs2 - 7)); totalPts += ptsS2; recordAndAddPoints(n, null, ptsS2, rs2, streakLabel, true); }
+  const effectQueue = [];
+  if (interval === 1) {
+    // 間隔1は連続扱い → 連続レア度のみ
+    if (curStreakNum === n && curStreakCount >= 2) {
+      const rs2 = calcStreakRarity(n, curStreakCount);
+      const streakLabel = `${curStreakCount}${currentLang.pointsStreak || '連続！'}`;
+      if (rs2 >= 7) { const ptsS2 = Math.floor(Math.pow(4, rs2 - 7)); totalPts += ptsS2; recordAndAddPoints(n, null, ptsS2, rs2, streakLabel, true); effectQueue.push({pts: ptsS2, r: rs2, label: streakLabel}); }
+    }
+  } else {
+    // 間隔2以上 → 間隔レア度＋出現レア度の両方
+    const r2 = calcIntervalRarity(n, interval);
+    const agoLabel = `${interval.toLocaleString()}${currentLang.pointsAgo || '回ぶり！'}`;
+    if (r2 >= 7) { const pts2 = Math.floor(Math.pow(4, r2 - 7)); totalPts += pts2; recordAndAddPoints(n, interval, pts2, r2, agoLabel, true); effectQueue.push({pts: pts2, r: r2, label: agoLabel}); }
+    const rb2 = calcIntervalRarity(n, 1);
+    if (rb2 >= 7) { const ptsB2 = Math.floor(Math.pow(4, rb2 - 7)); totalPts += ptsB2; recordAndAddPoints(n, 1, ptsB2, rb2, `P=1/${Math.pow(2,n).toLocaleString()}`, true); effectQueue.push({pts: ptsB2, r: rb2, label: `P=1/${Math.pow(2,n).toLocaleString()}`}); }
   }
-  if (bestR >= 7) showPointsEffect(bestPts, bestR, bestLabel);
+  // レア度高い順に並べてワンテンポずらして演出
+  effectQueue.sort((a, b) => b.r - a.r);
+  effectQueue.forEach((ef, i) => {
+    if (i === 0) showPointsEffect(ef.pts, ef.r, ef.label);
+    else setTimeout(() => showPointsEffect(ef.pts, ef.r, ef.label), i * 800);
+  });
 }
 
 document.getElementById('togglePointsEffect').addEventListener('click', () => {
@@ -2635,6 +3481,38 @@ document.getElementById('togglePointsEffect').addEventListener('click', () => {
   btn.style.background = pointsEffectEnabled ? 'var(--accent)' : 'var(--mid)';
   knob.style.transform = pointsEffectEnabled ? 'translateX(18px)' : 'translateX(0)';
   document.getElementById('pointsTap').style.display = pointsEffectEnabled ? '' : 'none';
+  savePoints();
+});
+
+document.getElementById('toggleSE').addEventListener('click', () => {
+  setSEToggle(!seEnabled);
+  if (seEnabled) { getAudio(); playRaritySE(8); } // iOS用：タップ内で音声を解禁＋試聴
+  savePoints();
+});
+
+document.getElementById('seVolume').addEventListener('input', e => {
+  seVolume = +e.target.value;
+  if (masterGain) masterGain.gain.value = seVolume / 50;
+});
+document.getElementById('seVolume').addEventListener('change', () => {
+  const ac = getAudio(); if (!ac) return;
+  masterGain.gain.value = seVolume / 50;
+  playTone(ac, ac.currentTime + 0.02, 880, 0.18, 0.15, 'sine'); // 確認音
+  savePoints();
+});
+document.getElementById('bgmVolume').addEventListener('input', e => {
+  bgmVolume = +e.target.value;
+  if (bgmBus) bgmBus.gain.value = 0.5 * bgmVolume / 50;
+});
+document.getElementById('bgmVolume').addEventListener('change', () => savePoints());
+document.getElementById('toggleBGM').addEventListener('click', () => {
+  setBgmToggle(!bgmEnabled);
+  if (bgmEnabled) startBGM(); else stopBGM();
+  savePoints();
+});
+document.getElementById('toggleTickSE').addEventListener('click', () => {
+  setTickToggle(!tickSeEnabled);
+  if (tickSeEnabled) { getAudio(); lastTickSeAt = 0; playNumberSE(1); setTimeout(() => { lastTickSeAt = 0; playNumberSE(3); }, 250); }
   savePoints();
 });
 
@@ -2923,6 +3801,8 @@ if (loadState()) {
   document.getElementById('totalCount').textContent = total;
   document.getElementById('maxSeen').textContent = maxSeen || '—';
 }
+// 初回訪問：自動判定した言語を静的UIにも反映
+if (currentLangKey !== 'ja') applyLang(currentLang, currentLangKey);
 
 // シアターモード位置はシアター開始時に復元するため、起動時は適用しない
 
